@@ -14,10 +14,18 @@ from pathlib import Path
 class LoadRASTerrain(object):
     """
     Loads one or more HEC-RAS terrain layers from a project's rasmap file.
+    
+    IMPORTANT: This tool loads the underlying terrain TIFFs as a VRT (Virtual Raster) 
+    with the priority from HEC-RAS in place. It does NOT include terrain modifications 
+    done as vector terrain modifications in RAS Mapper. Only the base terrain raster 
+    data will be loaded.
     """
     def __init__(self):
         self.label = "Load HEC-RAS Terrain"
-        self.description = "Loads terrain layers defined in a HEC-RAS project's .rasmap file into the current map."
+        self.description = """Loads terrain layers defined in a HEC-RAS project's .rasmap file into the current map.
+        
+        IMPORTANT: This tool only loads the underlying terrain TIFFs as VRT files. It does NOT include 
+        vector terrain modifications (breaklines, high ground, etc.) made in RAS Mapper."""
         self.canRunInBackground = False
         self._terrain_cache = {}
 
@@ -48,10 +56,37 @@ class LoadRASTerrain(object):
         ]
         
         params[0].filter.list = ["prj"]
+        params[0].description = """Select the HEC-RAS project file (*.prj). 
+        The tool will automatically find the associated .rasmap file in the same directory."""
+        
         params[1].value = False
+        params[1].description = """Check this box to import all terrain layers found in the project. 
+        When checked, the terrain selection list will be disabled."""
+        
         params[2].filter.type = "ValueList"
+        params[2].description = """Select specific terrain layers to load. 
+        This list is populated from the terrains found in the .rasmap file. 
+        Disabled when 'Import All Terrains' is checked."""
         
         return params
+    
+    def updateMessages(self, parameters):
+        """Modify the messages created by internal parameter validation."""
+        if parameters[0].value:
+            # Add a warning about VRT limitations
+            parameters[0].setWarningMessage(
+                "Note: This tool loads base terrain VRT files only. Vector terrain modifications "
+                "(breaklines, high ground, etc.) made in RAS Mapper will NOT be included."
+            )
+        
+        # Add additional warning if terrains are selected
+        if parameters[2].value or parameters[1].value:
+            if not parameters[0].hasWarning():
+                parameters[0].setWarningMessage(
+                    "Note: This tool loads base terrain VRT files only. Vector terrain modifications "
+                    "(breaklines, high ground, etc.) made in RAS Mapper will NOT be included."
+                )
+        return
 
     def isLicensed(self):
         return True
@@ -177,4 +212,20 @@ class LoadRASTerrain(object):
                 messages.addWarningMessage(f"Associated VRT file not found for terrain '{terrain_name}'. Expected at: {vrt_path}")
         
         messages.addMessage(f"\nProcessing complete. Added {layers_added} terrain layer(s).")
+        
+        # Add reminder about VRT limitations
+        if layers_added > 0:
+            messages.addWarningMessage(
+                "\nReminder: The loaded terrain layers are base VRT files only. "
+                "Any vector terrain modifications (breaklines, high ground, etc.) made in RAS Mapper "
+                "are NOT included in these layers."
+            )
         return
+    
+    def getHelp(self, tool_name):
+        """Return help documentation URL for the tool."""
+        help_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
+                                "Doc", "RASCommander_Help.html")
+        if os.path.exists(help_file):
+            return f"file:///{help_file.replace(os.sep, '/')}#load-hec-ras-terrain"
+        return None

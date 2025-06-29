@@ -34,7 +34,7 @@ if scripts_dir not in sys.path:
     sys.path.insert(0, scripts_dir)
 
 # Import the tool classes from our modules
-from ras_commander import LoadRASTerrain, LoadHECRAS6xHDFData
+from ras_commander import LoadRASTerrain, LoadHECRAS2DGeometry, LoadHECRAS2DResults
 
 
 class Toolbox(object):
@@ -46,4 +46,4 @@ class Toolbox(object):
         self.alias = "RASCommander"
         self.description = "Tools for loading HEC-RAS 2D geometry and terrain from HDF5 files. Sponsored by CLB Engineering (https://clbengineering.com/)."
         # List the tool classes
-        self.tools = [LoadHECRAS6xHDFData, LoadRASTerrain]
+        self.tools = [LoadHECRAS2DGeometry, LoadHECRAS2DResults, LoadRASTerrain]
