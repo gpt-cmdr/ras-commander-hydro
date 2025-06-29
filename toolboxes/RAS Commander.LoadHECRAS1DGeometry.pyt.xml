@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata xml:lang="en">
+    <Esri>
+        <CreaDate>20250629</CreaDate>
+        <CreaTime>14000000</CreaTime>
+        <ArcGISFormat>1.0</ArcGISFormat>
+        <SyncOnce>TRUE</SyncOnce>
+        <ModDate>20250629</ModDate>
+        <ModTime>140000</ModTime>
+    </Esri>
+    <tool name="LoadHECRAS1DGeometry" displayname="Load HEC-RAS 1D Geometry Layers" toolboxalias="RASCommander">
+        <summary>Extracts 1D geometry elements from a HEC-RAS HDF file including cross sections, river centerlines, bank lines, and hydraulic structures.</summary>
+        <arcToolboxHelpPath>toolboxes\RAS Commander.pyt</arcToolboxHelpPath>
+        <parameters>
+            <param name="input_hdf" displayname="Geometry or Plan HDF File" datatype="File" direction="Input" expression="input_hdf" type="Required">
+                <dialogReference>Select a HEC-RAS geometry file (g*.hdf) or plan file (p*.hdf) containing 1D geometry data.</dialogReference>
+            </param>
+            <param name="override_crs" displayname="Override CRS (Optional)" datatype="Spatial Reference" direction="Input" expression="override_crs" type="Optional">
+                <dialogReference>Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files. The tool will first attempt to read the CRS from the HDF file or associated .prj files.</dialogReference>
+            </param>
+            <param name="geometry_elements" displayname="Geometry Elements to Load" datatype="String" direction="Input" expression="geometry_elements" type="Required">
+                <dialogReference>Select one or more geometry elements to extract from the HDF file. Each selected element will create a separate output feature class.</dialogReference>
+            </param>
+        </parameters>
+    </tool>
+    <dataIdInfo>
+        <idCitation>
+            <resTitle>Load HEC-RAS 1D Geometry Layers</resTitle>
+        </idCitation>
+        <idAbs>This tool extracts various 1D geometry elements from HEC-RAS geometry (g*.hdf) or plan (p*.hdf) files.
+
+Available geometry elements include:
+• Cross Sections - River cross section cut lines with station-elevation data
+• River Centerlines - Main river/reach centerlines  
+• Bank Lines - Left and right bank lines
+• Edge Lines - River edge lines for terrain processing
+• Hydraulic Structures - Bridges, culverts, weirs, and other structures
+
+Select one or more elements to extract. Each selected element will create a separate feature class.
+
+Note: Station-elevation and Manning's n profiles are stored as text fields.</idAbs>
+        <idPurp>To extract and visualize HEC-RAS 1D geometry elements in ArcGIS Pro for analysis and mapping.</idPurp>
+        <searchKeys>
+            <keyword>HEC-RAS</keyword>
+            <keyword>1D Geometry</keyword>
+            <keyword>Cross Sections</keyword>
+            <keyword>River Centerlines</keyword>
+            <keyword>Bank Lines</keyword>
+            <keyword>Hydraulic Structures</keyword>
+        </searchKeys>
+    </dataIdInfo>
+</metadata>

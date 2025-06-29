@@ -6,8 +6,8 @@
 # ===================================================================================
 #
 # DESCRIPTION:
-# This toolbox provides tools for loading and visualizing HEC-RAS 2D geometry and terrain
-# data from HDF5 files directly within ArcGIS Pro.
+# This toolbox provides tools for loading and visualizing HEC-RAS 1D and 2D geometry,
+# terrain, and results data from HDF5 files directly within ArcGIS Pro.
 #
 # ORIGIN AND ATTRIBUTION:
 # This toolbox is a direct port of the HDF5 data extraction logic from the
@@ -34,16 +34,16 @@ if scripts_dir not in sys.path:
     sys.path.insert(0, scripts_dir)
 
 # Import the tool classes from our modules
-from ras_commander import LoadRASTerrain, LoadHECRAS2DGeometry, LoadHECRAS2DResults
+from ras_commander import LoadRASTerrain, LoadHECRAS2DGeometry, LoadHECRAS2DResults, LoadHECRAS1DGeometry
 
 
 class Toolbox(object):
     """
-    ArcGIS Python Toolbox for loading HEC-RAS 2D geometry and terrain layers.
+    ArcGIS Python Toolbox for loading HEC-RAS 1D and 2D geometry, terrain, and results layers.
     """
     def __init__(self):
         self.label = "RAS Commander"
         self.alias = "RASCommander"
-        self.description = "Tools for loading HEC-RAS 2D geometry and terrain from HDF5 files. Sponsored by CLB Engineering (https://clbengineering.com/)."
+        self.description = "Tools for loading HEC-RAS 1D and 2D geometry, terrain, and results from HDF5 files. Sponsored by CLB Engineering (https://clbengineering.com/)."
         # List the tool classes
-        self.tools = [LoadHECRAS2DGeometry, LoadHECRAS2DResults, LoadRASTerrain]
+        self.tools = [LoadHECRAS1DGeometry, LoadHECRAS2DGeometry, LoadHECRAS2DResults, LoadRASTerrain]
