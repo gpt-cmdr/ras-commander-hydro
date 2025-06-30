@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(cp:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:desktop.arcgis.com)"
+    ],
+    "deny": []
+  }
+}
