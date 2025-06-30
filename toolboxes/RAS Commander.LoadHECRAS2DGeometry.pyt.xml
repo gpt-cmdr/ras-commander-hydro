@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata xml:lang="en">
+    <Esri>
+        <CreaDate>20250629</CreaDate>
+        <CreaTime>10121400</CreaTime>
+        <ArcGISFormat>1.0</ArcGISFormat>
+        <SyncOnce>TRUE</SyncOnce>
+        <ModDate>20250629</ModDate>
+        <ModTime>120000</ModTime>
+    </Esri>
+    <tool name="LoadHECRAS2DGeometry" displayname="Load HEC-RAS 2D Geometry Layers" toolboxalias="RASCommander">
+        <summary>Extracts 2D geometry elements from a HEC-RAS HDF file including mesh elements, breaklines, boundary conditions, and pipe networks.</summary>
+        <arcToolboxHelpPath>toolboxes\RAS Commander.pyt</arcToolboxHelpPath>
+        <parameters>
+            <param name="input_hdf" displayname="Geometry or Plan HDF File" datatype="File" direction="Input" expression="input_hdf" type="Required">
+                <dialogReference>Select a HEC-RAS geometry file (g*.hdf) or plan file (p*.hdf) containing 2D geometry data.</dialogReference>
+            </param>
+            <param name="override_crs" displayname="Override CRS (Optional)" datatype="Spatial Reference" direction="Input" expression="override_crs" type="Optional">
+                <dialogReference>Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files. The tool will first attempt to read the CRS from the HDF file or associated .prj files.</dialogReference>
+            </param>
+            <param name="geometry_elements" displayname="Geometry Elements to Load" datatype="String" direction="Input" expression="geometry_elements" type="Required">
+                <dialogReference>Select one or more geometry elements to extract from the HDF file. Each selected element will create a separate output feature class.</dialogReference>
+            </param>
+        </parameters>
+    </tool>
+    <dataIdInfo>
+        <idCitation>
+            <resTitle>Load HEC-RAS 2D Geometry Layers</resTitle>
+        </idCitation>
+        <idAbs>This tool extracts various 2D geometry elements from HEC-RAS geometry (g*.hdf) or plan (p*.hdf) files.
+
+Available geometry elements include:
+• 2D Breaklines - Mesh refinement lines with cell spacing attributes
+• 2D Boundary Condition Lines - External and internal boundary conditions
+• Mesh Area Perimeters - 2D flow area boundaries
+• Mesh Cell Centers - Point locations at the center of each mesh cell
+• Mesh Cell Faces - Line geometries representing cell edges
+• Mesh Cells (Polygons) - Full polygon representation of mesh cells
+• Pipe Conduits - Storm/sewer pipe networks (if present)
+• Pipe Nodes - Junction points in pipe networks (if present)
+
+Select one or more elements to extract. Each selected element will create a separate feature class.
+
+Note: Mesh cell polygon creation can be time-consuming for large meshes (>100,000 cells).</idAbs>
+        <idPurp>To extract and visualize HEC-RAS 2D geometry elements in ArcGIS Pro for analysis and mapping.</idPurp>
+        <searchKeys>
+            <keyword>HEC-RAS</keyword>
+            <keyword>2D Geometry</keyword>
+            <keyword>Mesh</keyword>
+            <keyword>Breaklines</keyword>
+            <keyword>Boundary Conditions</keyword>
+            <keyword>Pipe Networks</keyword>
+        </searchKeys>
+    </dataIdInfo>
+</metadata>

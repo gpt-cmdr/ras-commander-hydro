@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata xml:lang="en">
+	<Esri>
+		<CreaDate>20250629</CreaDate>
+		<CreaTime>10124400</CreaTime>
+		<ArcGISFormat>1.0</ArcGISFormat>
+		<SyncOnce>TRUE</SyncOnce>
+		<ModDate>20250629</ModDate>
+		<ModTime>120000</ModTime>
+	</Esri>
+	<tool name="LoadHECRAS2DResults" displayname="Load HEC-RAS 2D Results Summary Layers" toolboxalias="RASCommander">
+		<summary>Extracts 2D results summary data from a HEC-RAS HDF file including maximum water surface elevation and face velocities.</summary>
+		<arcToolboxHelpPath>toolboxes\RAS Commander.pyt</arcToolboxHelpPath>
+		<parameters>
+			<param name="input_hdf" displayname="Plan HDF File with Results" datatype="File" direction="Input" expression="input_hdf" type="Required">
+				<dialogReference>Select a HEC-RAS plan file (p*.hdf) that contains simulation results. Geometry-only files will not contain the required results data.</dialogReference>
+			</param>
+			<param name="override_crs" displayname="Override CRS (Optional)" datatype="Spatial Reference" direction="Input" expression="override_crs" type="Optional">
+				<dialogReference>Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files. The tool will first attempt to read the CRS from the HDF file or associated .prj files.</dialogReference>
+			</param>
+			<param name="results_elements" displayname="Results to Load" datatype="String" direction="Input" expression="results_elements" type="Required">
+				<dialogReference>Select one or more results types to extract from the HDF file. Each selected result will create a separate output feature class.</dialogReference>
+			</param>
+		</parameters>
+	</tool>
+	<dataIdInfo>
+		<idCitation>
+			<resTitle>Load HEC-RAS 2D Results Summary Layers</resTitle>
+		</idCitation>
+		<idAbs>This tool extracts summary results data from HEC-RAS plan files (p*.hdf) that contain simulation results.
+
+Available results include:
+• Max WSE at Cell Centers - Maximum water surface elevation achieved at each cell center during the simulation, with the time of occurrence
+• Max Vel at Cell Faces - Maximum velocity achieved at each cell face during the simulation, with the time of occurrence
+
+Both results types create point feature classes with attributes for the maximum value and the time when it occurred.
+
+IMPORTANT: This tool requires a plan HDF file that contains results data. Geometry-only files will not work.</idAbs>
+		<idPurp>To extract and visualize HEC-RAS 2D simulation results in ArcGIS Pro for flood analysis and mapping.</idPurp>
+		<searchKeys>
+			<keyword>HEC-RAS</keyword>
+			<keyword>2D Results</keyword>
+			<keyword>Water Surface Elevation</keyword>
+			<keyword>Velocity</keyword>
+			<keyword>Flood Results</keyword>
+			<keyword>Maximum Values</keyword>
+		</searchKeys>
+	</dataIdInfo>
+</metadata>

@@ -1,2 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<metadata xml:lang="en"><Esri><CreaDate>20250628</CreaDate><CreaTime>14094400</CreaTime><ArcGISFormat>1.0</ArcGISFormat><SyncOnce>TRUE</SyncOnce></Esri></metadata>
+<metadata xml:lang="en">
+    <Esri>
+        <CreaDate>20250628</CreaDate>
+        <CreaTime>14094400</CreaTime>
+        <ArcGISFormat>1.0</ArcGISFormat>
+        <SyncOnce>TRUE</SyncOnce>
+        <ModDate>20250629</ModDate>
+        <ModTime>120000</ModTime>
+    </Esri>
+    <tool name="LoadRASTerrain" displayname="Load HEC-RAS Terrain" toolboxalias="RASCommander">
+        <summary>Loads terrain layers defined in a HEC-RAS project's .rasmap file into the current map.</summary>
+        <arcToolboxHelpPath>toolboxes\RAS Commander.pyt</arcToolboxHelpPath>
+        <parameters>
+            <param name="in_ras_project" displayname="HEC-RAS Project File (*.prj)" datatype="File" direction="Input" expression="in_ras_project" type="Required">
+                <dialogReference>Select the HEC-RAS project file (*.prj). The tool will automatically find the associated .rasmap file in the same directory.</dialogReference>
+            </param>
+            <param name="import_all" displayname="Import All Terrains" datatype="Boolean" direction="Input" expression="import_all" type="Optional">
+                <dialogReference>Check this box to import all terrain layers found in the project. When checked, the terrain selection list will be disabled.</dialogReference>
+            </param>
+            <param name="terrains_to_load" displayname="Terrains to Load" datatype="String" direction="Input" expression="terrains_to_load" type="Optional">
+                <dialogReference>Select specific terrain layers to load. This list is populated from the terrains found in the .rasmap file. Disabled when 'Import All Terrains' is checked.</dialogReference>
+            </param>
+        </parameters>
+    </tool>
+    <dataIdInfo>
+        <idCitation>
+            <resTitle>Load HEC-RAS Terrain</resTitle>
+        </idCitation>
+        <idAbs>This tool reads terrain layer definitions from a HEC-RAS project's .rasmap file and loads the associated VRT (Virtual Raster) files into ArcGIS Pro.
+
+IMPORTANT LIMITATIONS:
+• This tool loads the underlying terrain TIFFs as a VRT with the priority from HEC-RAS in place
+• It does NOT include terrain modifications done as vector terrain modifications in RAS Mapper
+• Only the base terrain raster data will be loaded
+• If your HEC-RAS model includes vector terrain modifications (breaklines, high ground, etc.), those modifications will not be reflected in the loaded terrain
+
+The tool will:
+1. Read the .rasmap file associated with your HEC-RAS project
+2. Find all terrain layers defined in the project
+3. Load the corresponding VRT files that reference the underlying TIFF files
+4. Apply the layer priority as defined in HEC-RAS
+
+Select individual terrains or use "Import All Terrains" to load all available terrain layers.</idAbs>
+        <idPurp>To load HEC-RAS terrain layers into ArcGIS Pro for visualization. Note that only base terrain VRT files are loaded - vector terrain modifications from RAS Mapper are NOT included.</idPurp>
+        <searchKeys>
+            <keyword>HEC-RAS</keyword>
+            <keyword>Terrain</keyword>
+            <keyword>VRT</keyword>
+            <keyword>Raster</keyword>
+            <keyword>DEM</keyword>
+            <keyword>Elevation</keyword>
+        </searchKeys>
+    </dataIdInfo>
+</metadata>
