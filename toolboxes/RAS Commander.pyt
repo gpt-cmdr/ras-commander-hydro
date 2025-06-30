@@ -42,7 +42,7 @@ class Toolbox(object):
     ArcGIS Python Toolbox for loading HEC-RAS 1D and 2D geometry, terrain, and results layers.
     """
     def __init__(self):
-        self.label = "RAS Commander"
+        self.label = "RAS Commander Tools"
         self.alias = "RASCommander"
         self.description = "Tools for loading HEC-RAS 1D and 2D geometry, terrain, and results from HDF5 files. Sponsored by CLB Engineering (https://clbengineering.com/)."
         # List the tool classes
