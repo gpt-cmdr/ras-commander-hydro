@@ -504,6 +504,150 @@ class LoadHECRAS2DGeometry(object):
             arcpy.AddError(f"HDF Read Error (Pipe Nodes): {e}")
             raise arcpy.ExecuteError("Failed to read pipe nodes from HDF file")
 
+    def _get_pipe_networks_direct(self, hdf_file, sr):
+        """Extracts pipe network cell polygons from HDF file."""
+        try:
+            networks_path = "Geometry/Pipe Networks"
+            if networks_path not in hdf_file:
+                return [], []
+            
+            networks_group = hdf_file[networks_path]
+            
+            # Get network attributes
+            if 'Attributes' not in networks_group:
+                return [], []
+            
+            attributes = networks_group['Attributes'][()]
+            if len(attributes) == 0:
+                return [], []
+            
+            # Get the first network name (or could iterate through all)
+            network_name = attributes[0]['Name']
+            if isinstance(network_name, bytes):
+                network_name = network_name.decode('utf-8', 'ignore').strip()
+            
+            arcpy.AddMessage(f"Processing pipe network: {network_name}")
+            
+            # Access the specific network group
+            network_path = f"{networks_path}/{network_name}"
+            if network_path not in hdf_file:
+                arcpy.AddWarning(f"Network path '{network_path}' not found in HDF file")
+                return [], []
+            
+            network_group = hdf_file[network_path]
+            
+            # Check for required datasets
+            required_datasets = ['Cell Polygons Info', 'Cell Polygons Parts', 'Cell Polygons Points']
+            for ds in required_datasets:
+                if ds not in network_group:
+                    arcpy.AddWarning(f"Required dataset '{ds}' not found in pipe network")
+                    return [], []
+            
+            # Read cell polygon data
+            cell_info = network_group['Cell Polygons Info'][()]
+            cell_parts = network_group['Cell Polygons Parts'][()]
+            cell_points = network_group['Cell Polygons Points'][()]
+            
+            # Read additional cell attributes if available
+            cell_attributes = {}
+            if 'Cell Property Table' in network_group:
+                cell_property_table = network_group['Cell Property Table'][()]
+                # Convert to dictionary for easier access
+                for i, row in enumerate(cell_property_table):
+                    cell_attributes[i] = {}
+                    for field_name in cell_property_table.dtype.names:
+                        value = row[field_name]
+                        if isinstance(value, (bytes, np.bytes_)):
+                            value = value.decode('utf-8', 'ignore').strip()
+                        cell_attributes[i][field_name] = value
+            
+            # Read minimum elevations if available
+            min_elevations = None
+            if 'Cells Minimum Elevations' in network_group:
+                min_elevations = network_group['Cells Minimum Elevations'][()]
+            
+            # Read node and conduit IDs if available
+            node_conduit_ids = None
+            if 'Cells Node and Conduit IDs' in network_group:
+                node_conduit_ids = network_group['Cells Node and Conduit IDs'][()]
+            
+            valid_data, geometries = [], []
+            
+            # Process each cell
+            for cell_idx, info in enumerate(cell_info):
+                point_start_idx, point_count, part_start_idx, part_count = info
+                
+                try:
+                    # Build polygon from parts
+                    if part_count == 0:
+                        continue
+                    
+                    parts_list = []
+                    for p in range(part_start_idx, part_start_idx + part_count):
+                        if p >= len(cell_parts):
+                            continue
+                        
+                        part_info = cell_parts[p]
+                        part_point_start = part_info[0]
+                        part_point_count = part_info[1]
+                        
+                        # Extract coordinates for this part
+                        coords = cell_points[part_point_start:part_point_start + part_point_count]
+                        if len(coords) < 3:  # Need at least 3 points for a polygon
+                            continue
+                        
+                        # Create arcpy array for this part
+                        part_array = arcpy.Array([arcpy.Point(c[0], c[1]) for c in coords])
+                        parts_list.append(part_array)
+                    
+                    if not parts_list:
+                        continue
+                    
+                    # Create polygon geometry
+                    if len(parts_list) == 1:
+                        geom = arcpy.Polygon(parts_list[0], sr)
+                    else:
+                        # Multi-part polygon
+                        all_parts = arcpy.Array()
+                        for part in parts_list:
+                            all_parts.add(part)
+                        geom = arcpy.Polygon(all_parts, sr)
+                    
+                    # Build attribute dictionary
+                    attr_dict = {
+                        'cell_id': int(cell_idx),
+                        'network_name': network_name
+                    }
+                    
+                    # Add cell properties if available
+                    if cell_idx in cell_attributes:
+                        for key, value in cell_attributes[cell_idx].items():
+                            # Clean field name
+                            clean_key = key.replace(' ', '_').replace(':', '_').replace(';', '_').replace(',', '_')
+                            attr_dict[clean_key] = value
+                    
+                    # Add minimum elevation if available
+                    if min_elevations is not None and cell_idx < len(min_elevations):
+                        attr_dict['min_elevation'] = float(min_elevations[cell_idx])
+                    
+                    # Add node and conduit IDs if available
+                    if node_conduit_ids is not None and cell_idx < len(node_conduit_ids):
+                        attr_dict['node_id'] = int(node_conduit_ids[cell_idx][0])
+                        attr_dict['conduit_id'] = int(node_conduit_ids[cell_idx][1])
+                    
+                    valid_data.append(attr_dict)
+                    geometries.append(geom)
+                    
+                except Exception as e:
+                    arcpy.AddWarning(f"Error processing pipe network cell {cell_idx}: {str(e)}")
+                    continue
+            
+            return valid_data, geometries
+            
+        except Exception as e:
+            arcpy.AddError(f"HDF Read Error (Pipe Networks): {e}")
+            raise arcpy.ExecuteError("Failed to read pipe networks from HDF file")
+
     def _get_mesh_areas_direct(self, hdf_file, sr):
         """Extracts mesh area perimeters from HDF file."""
         try:
@@ -834,6 +978,17 @@ class LoadHECRAS2DGeometry(object):
                     write_features_to_fc(output_fc, sr, "POINT", fields, data, geoms, messages)
                 else:
                     messages.addWarning("No pipe nodes found in the HDF file.")
+            
+            if self.PIPE_NETWORKS in geometry_elements and parameters[11].valueAsText:
+                output_fc = parameters[11].valueAsText
+                messages.addMessage("Extracting Pipe Networks...")
+                data, geoms = self._get_pipe_networks_direct(hdf_file, sr)
+                if data:
+                    # Get dynamic fields from the data
+                    fields = get_dynamic_fields_from_data(data)
+                    write_features_to_fc(output_fc, sr, "POLYGON", fields, data, geoms, messages)
+                else:
+                    messages.addWarning("No pipe networks found in the HDF file.")
         
         messages.addMessage("\nProcessing complete.")
         return
