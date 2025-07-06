@@ -80,10 +80,11 @@ Write-Host ""
 $mappings = @(
     @{
         Name = "Python Scripts"
-        Source = Join-Path $repoRoot "Scripts\ras_commander"
-        Destination = Join-Path $arcgisProPath "Resources\ArcToolBox\Scripts\ras_commander"
+        Source = Join-Path $repoRoot "Scripts\archydro"
+        Destination = Join-Path $arcgisProPath "Resources\ArcToolBox\Scripts\archydro"
         Type = "Directory"
         Required = $true
+        Filter = "rc_*.py"
     },
     @{
         Name = "Python Toolbox"
@@ -94,8 +95,8 @@ $mappings = @(
     },
     @{
         Name = "Layer Templates"
-        Source = Join-Path $repoRoot "Templates\Layers\archydro\ras-commander"
-        Destination = Join-Path $arcgisProPath "Resources\ArcToolBox\Templates\Layers\archydro\ras-commander"
+        Source = Join-Path $repoRoot "Templates\Layers\archydro"
+        Destination = Join-Path $arcgisProPath "Resources\ArcToolBox\Templates\Layers\archydro"
         Type = "Directory"
         Required = $false
     },
@@ -150,7 +151,16 @@ foreach ($mapping in $mappings) {
         
         # Copy the content
         if ($mapping.Type -eq "Directory") {
-            Copy-Item -Path $mapping.Source -Destination $mapping.Destination -Recurse -Force
+            if ($mapping.Filter) {
+                # Create destination directory
+                New-Item -ItemType Directory -Path $mapping.Destination -Force | Out-Null
+                # Copy only filtered files
+                Get-ChildItem -Path $mapping.Source -Filter $mapping.Filter | ForEach-Object {
+                    Copy-Item -Path $_.FullName -Destination $mapping.Destination -Force
+                }
+            } else {
+                Copy-Item -Path $mapping.Source -Destination $mapping.Destination -Recurse -Force
+            }
         } else {
             # For files, ensure the destination directory exists
             $destDir = Split-Path -Parent $mapping.Destination

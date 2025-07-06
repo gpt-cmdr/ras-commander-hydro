@@ -1,0 +1,560 @@
+# -*- coding: utf-8 -*-
+"""
+OrganizeRASProject.py
+
+Master tool for organizing all HEC-RAS data from HDF files into a structured geodatabase.
+This tool extracts all available geometry and results data in a single operation.
+"""
+
+import arcpy
+import os
+import h5py
+import numpy as np
+
+# Import helper functions from utils
+from rc_utils import (
+    get_ras_projection_wkt,
+    setup_geodatabase_output,
+    get_unique_fc_name,
+    add_feature_class_metadata,
+    extract_project_and_plan_info,
+    create_geodatabase_from_hdf,
+    get_feature_dataset_name,
+    get_feature_class_name
+)
+
+# Import the individual tool classes
+from rc_load_hecras_1d_geometry import LoadHECRAS1DGeometry
+from rc_load_hecras_2d_geometry import LoadHECRAS2DGeometry
+from rc_load_hecras_2d_results import LoadHECRAS2DResults
+
+
+class OrganizeRASProject(object):
+    """
+    Organizes all HEC-RAS data into a structured geodatabase.
+    """
+    def __init__(self):
+        self.label = "Organize HEC-RAS Project"
+        self.description = """Extracts all geometry and results from HEC-RAS files into an organized geodatabase.
+        
+        This tool automatically:
+        • Creates a well-organized geodatabase structure
+        • Extracts all available 1D geometry elements
+        • Extracts all available 2D geometry elements
+        • Extracts pipe network data if present
+        • Extracts results data if available
+        
+        The geodatabase will be organized with feature datasets named by project and plan:
+        • {ProjectName}_Plan{XX} - Contains all geometry and results for each plan
+        
+        Each plan's feature dataset will contain:
+        • 1D Geometry - Cross sections, river centerlines, bank lines, structures
+        • 2D Geometry - Breaklines, boundary conditions, mesh elements
+        • Pipe Networks - Storm/sewer pipe networks (if present)
+        • Results - Maximum WSE, velocity, and other results (if available)
+        
+        Note: This operation may take several minutes for large models."""
+        self.canRunInBackground = False
+
+    def getParameterInfo(self):
+        params = [
+            # Input files
+            arcpy.Parameter(displayName="HEC-RAS Project Directory or HDF File", name="input_path", 
+                          datatype=["DEFolder", "DEFile"], 
+                          parameterType="Required", direction="Input"),
+            
+            # Output geodatabase
+            arcpy.Parameter(displayName="Output Geodatabase", name="output_gdb", datatype="DEWorkspace", 
+                          parameterType="Required", direction="Output"),
+            
+            # CRS override
+            arcpy.Parameter(displayName="Override CRS (Optional)", name="override_crs", datatype="GPSpatialReference", 
+                          parameterType="Optional", direction="Input"),
+            
+            # Options
+            arcpy.Parameter(displayName="Include Mesh Cell Polygons", name="include_cell_polygons", datatype="GPBoolean", 
+                          parameterType="Optional", direction="Input"),
+            arcpy.Parameter(displayName="Extract All Available Results", name="extract_all_results", datatype="GPBoolean", 
+                          parameterType="Optional", direction="Input")
+        ]
+        
+        # Configure parameters
+        params[0].description = """Select a HEC-RAS project directory to process all plan files (p*.hdf), 
+        or select a single HDF file to process."""
+        
+        params[1].description = "Output geodatabase that will contain all extracted data in an organized structure."
+        
+        params[2].description = """Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files."""
+        
+        params[3].value = False
+        params[3].description = "Include mesh cell polygons (can be time-consuming for large meshes)."
+        
+        params[4].value = True
+        params[4].description = "Extract all available result variables (WSE, velocity, depth, etc.)."
+        
+        return params
+
+    def isLicensed(self):
+        """Set whether tool is licensed to execute."""
+        return True
+
+    def updateParameters(self, parameters):
+        """Modify the values and properties of parameters before internal validation."""
+        # Set default output geodatabase name based on input
+        if parameters[0].value and not parameters[1].altered:
+            input_path = parameters[0].valueAsText
+            
+            if os.path.isdir(input_path):
+                # For directory, use directory name
+                input_name = os.path.basename(input_path.rstrip(os.sep))
+                default_gdb = os.path.join(input_path, f"{input_name}_Organized.gdb")
+            else:
+                # For single file, use file name
+                input_name = os.path.splitext(os.path.basename(input_path))[0]
+                default_gdb = os.path.join(os.path.dirname(input_path), f"{input_name}_Organized.gdb")
+            
+            parameters[1].value = default_gdb
+        return
+    
+    def updateMessages(self, parameters):
+        """Modify messages created by internal validation."""
+        # Warn about mesh polygons
+        if parameters[3].value:
+            parameters[3].setWarningMessage(
+                "Creating cell polygons can be time-consuming for large meshes (>100,000 cells)."
+            )
+        return
+
+    def _check_hdf_contents(self, hdf_file):
+        """Check what data is available in the HDF file."""
+        contents = {
+            'has_1d': False,
+            'has_2d': False,
+            'has_pipes': False,
+            'has_results': False,
+            '1d_elements': [],
+            '2d_elements': [],
+            'result_profiles': []
+        }
+        
+        # Check for 1D geometry
+        if "Geometry/Cross Sections" in hdf_file:
+            # Verify that it has actual data
+            if "Geometry/Cross Sections/Attributes" in hdf_file:
+                contents['has_1d'] = True
+                contents['1d_elements'].append("Cross Sections")
+        if "Geometry/River Centerlines" in hdf_file:
+            contents['has_1d'] = True
+            contents['1d_elements'].append("River Centerlines")
+        if "Geometry/Bank Lines" in hdf_file:
+            contents['has_1d'] = True
+            contents['1d_elements'].append("Bank Lines")
+        if "Geometry/Structures" in hdf_file:
+            # Verify that it has actual data
+            if "Geometry/Structures/Attributes" in hdf_file:
+                contents['has_1d'] = True
+                contents['1d_elements'].append("1D Structures")
+        
+        # Check for 2D geometry
+        if "Geometry/2D Flow Areas" in hdf_file:
+            contents['has_2d'] = True
+            contents['2d_elements'].append("Mesh Area Perimeters")
+            contents['2d_elements'].append("Mesh Cell Centers")
+            contents['2d_elements'].append("Mesh Cell Faces")
+        if "Geometry/2D Flow Area Break Lines" in hdf_file:
+            contents['2d_elements'].append("2D Breaklines")
+        if "Geometry/Boundary Condition Lines" in hdf_file:
+            contents['2d_elements'].append("2D Boundary Condition Lines")
+        
+        # Check for pipe networks
+        if "Geometry/Pipe Conduits" in hdf_file:
+            contents['has_pipes'] = True
+        
+        # Check for results
+        if "Results/Unsteady/Output/Output Blocks/Base Output/Unsteady Time Series/2D Flow Areas" in hdf_file:
+            contents['has_results'] = True
+            # Get available output profiles
+            results_path = "Results/Unsteady/Output/Output Blocks/Base Output/Unsteady Time Series/2D Flow Areas"
+            for flow_area in hdf_file[results_path]:
+                if "Maximum Values" in hdf_file[f"{results_path}/{flow_area}"]:
+                    max_vals = hdf_file[f"{results_path}/{flow_area}/Maximum Values"]
+                    contents['result_profiles'].extend(list(max_vals.keys()))
+                    break
+        
+        return contents
+
+    def _load_geodatabase_to_map(self, gdb_path, messages):
+        """Load all feature classes from the geodatabase into the current map, grouped by plan."""
+        try:
+            # Get the current project and map
+            aprx = arcpy.mp.ArcGISProject("CURRENT")
+            map_obj = aprx.activeMap
+            
+            if not map_obj:
+                messages.addWarning("No active map found. Feature classes were created but not added to the map.")
+                return
+            
+            # Collect all feature classes and rasters first
+            all_layers = []
+            
+            # Set workspace to the geodatabase
+            arcpy.env.workspace = gdb_path
+            
+            # Collect all feature classes
+            for dirpath, dirnames, filenames in arcpy.da.Walk(gdb_path, datatype="FeatureClass"):
+                for filename in filenames:
+                    fc_path = os.path.join(dirpath, filename)
+                    all_layers.append((filename, fc_path, "FeatureClass"))
+            
+            # Collect all rasters
+            for dirpath, dirnames, filenames in arcpy.da.Walk(gdb_path, datatype="RasterDataset"):
+                for filename in filenames:
+                    raster_path = os.path.join(dirpath, filename)
+                    all_layers.append((filename, raster_path, "Raster"))
+            
+            # Group layers by plan
+            plan_groups = {}
+            for layer_name, layer_path, layer_type in all_layers:
+                # Extract plan info from layer name (e.g., "ProjectName_Plan_03_LayerType")
+                if "_Plan_" in layer_name:
+                    parts = layer_name.split("_Plan_")
+                    if len(parts) >= 2:
+                        project_name = parts[0]
+                        # Extract plan number (should be next 2 characters after Plan_)
+                        remaining = parts[1]
+                        if len(remaining) >= 2:
+                            plan_number = remaining[:2]
+                            plan_key = "{}_Plan_{}".format(project_name, plan_number)
+                            
+                            if plan_key not in plan_groups:
+                                plan_groups[plan_key] = []
+                            plan_groups[plan_key].append((layer_name, layer_path, layer_type))
+                else:
+                    # Layers without plan info go to a general group
+                    if "General" not in plan_groups:
+                        plan_groups["General"] = []
+                    plan_groups["General"].append((layer_name, layer_path, layer_type))
+            
+            # Sort plans and layers within each plan
+            sorted_plans = sorted(plan_groups.keys())
+            
+            # Add layers to map grouped by plan
+            feature_classes_added = []
+            messages.addMessage("\nAdding layers to map grouped by plan:")
+            
+            for plan_key in sorted_plans:
+                # Create a group layer for this plan
+                group_name = plan_key if plan_key != "General" else "Other Layers"
+                
+                try:
+                    # Create the group layer first
+                    group_layer = map_obj.createGroupLayer(group_name)
+                    
+                    # Sort layers within this plan alphabetically
+                    plan_layers = sorted(plan_groups[plan_key], key=lambda x: x[0].lower())
+                    
+                    # Add layers to the group
+                    layers_added_to_group = 0
+                    layers_to_remove = []  # Track layers to remove after adding to group
+                    
+                    for layer_name, layer_path, layer_type in plan_layers:
+                        try:
+                            # First add the layer to the map
+                            layer = map_obj.addDataFromPath(layer_path)
+                            if layer:
+                                # Then add it to the group layer
+                                map_obj.addLayerToGroup(group_layer, layer, "AUTO_ARRANGE")
+                                
+                                # Track the original layer for removal
+                                layers_to_remove.append(layer)
+                                
+                                feature_classes_added.append(layer_name)
+                                layers_added_to_group += 1
+                                messages.addMessage("  Added {} to {}".format(layer_name, group_name))
+                        except Exception as e:
+                            messages.addWarning("  Could not add {} to group: {}".format(layer_name, str(e)))
+                    
+                    # Remove the original layers that were added to the group
+                    for layer in layers_to_remove:
+                        try:
+                            map_obj.removeLayer(layer)
+                        except:
+                            pass  # Ignore errors when removing
+                    
+                    if layers_added_to_group > 0:
+                        messages.addMessage("Created group layer: {} with {} layers".format(group_name, layers_added_to_group))
+                    else:
+                        # Remove empty group layer
+                        try:
+                            map_obj.removeLayer(group_layer)
+                        except:
+                            pass
+                        
+                except Exception as e:
+                    messages.addWarning("Could not create group layer {}: {}".format(group_name, str(e)))
+                    # Fall back to adding layers to the map directly
+                    plan_layers = sorted(plan_groups[plan_key], key=lambda x: x[0].lower())
+                    for layer_name, layer_path, layer_type in plan_layers:
+                        try:
+                            layer = map_obj.addDataFromPath(layer_path)
+                            if layer:
+                                feature_classes_added.append(layer_name)
+                                messages.addMessage("  Added {} to map (ungrouped)".format(layer_name))
+                        except Exception as e:
+                            messages.addWarning("  Could not add {}: {}".format(layer_name, str(e)))
+            
+            if feature_classes_added:
+                messages.addMessage("\nSuccessfully added {} layers to the map in {} groups.".format(len(feature_classes_added), len(plan_groups)))
+                
+                # Try to save the project
+                try:
+                    aprx.save()
+                    messages.addMessage("Project saved.")
+                except:
+                    pass  # Saving might fail in some contexts
+            else:
+                messages.addWarning("No feature classes were added to the map.")
+                
+        except Exception as e:
+            messages.addWarning("Error loading geodatabase to map: {}".format(str(e)))
+            messages.addWarning("Feature classes were created successfully but could not be added to the map.")
+
+    def execute(self, parameters, messages):
+        """Execute the tool."""
+        input_path = parameters[0].valueAsText
+        output_gdb = parameters[1].valueAsText
+        override_crs = parameters[2].value
+        include_cell_polygons = parameters[3].value
+        extract_all_results = parameters[4].value
+        
+        # Determine if input is directory or file
+        hdf_files = []
+        
+        if os.path.isdir(input_path):
+            # Find all plan files
+            import glob
+            pattern = os.path.join(input_path, "*.p[0-9][0-9].hdf")
+            hdf_files = sorted(glob.glob(pattern))
+            
+            if not hdf_files:
+                # Try geometry files
+                pattern = os.path.join(input_path, "*.g[0-9][0-9].hdf")
+                hdf_files = sorted(glob.glob(pattern))
+        else:
+            # Single file
+            hdf_files = [input_path]
+        
+        if not hdf_files:
+            messages.addErrorMessage("No HDF files found in the specified location.")
+            return
+        
+        messages.addMessage(f"Found {len(hdf_files)} HDF file(s) to process")
+        
+        # Create output geodatabase
+        gdb_folder = os.path.dirname(output_gdb)
+        gdb_name = os.path.basename(output_gdb)
+        
+        if not arcpy.Exists(output_gdb):
+            arcpy.CreateFileGDB_management(gdb_folder, gdb_name)
+            messages.addMessage(f"Created geodatabase: {output_gdb}")
+        
+        # Process each HDF file
+        for i, hdf_path in enumerate(hdf_files, 1):
+            messages.addMessage(f"\n{'='*60}")
+            messages.addMessage(f"Processing file {i}/{len(hdf_files)}: {os.path.basename(hdf_path)}")
+            messages.addMessage(f"{'='*60}")
+            
+            self._process_single_hdf(hdf_path, output_gdb, override_crs, 
+                                   include_cell_polygons, extract_all_results, messages)
+        
+        messages.addMessage(f"\n{'='*60}")
+        messages.addMessage(f"Processing complete! All plans organized in:")
+        messages.addMessage(f"  {output_gdb}")
+        
+        # Load the geodatabase into the map
+        messages.addMessage("\nAdding results to map...")
+        self._load_geodatabase_to_map(output_gdb, messages)
+    
+    def _process_single_hdf(self, hdf_path, output_gdb, override_crs, 
+                          include_cell_polygons, extract_all_results, messages):
+        """Process a single HDF file."""
+        # Extract project and plan info
+        project_name, plan_number, base_name = extract_project_and_plan_info(hdf_path)
+        
+        # Get projection
+        proj_wkt = get_ras_projection_wkt(hdf_path)
+        sr = None
+        if proj_wkt:
+            sr = arcpy.SpatialReference()
+            sr.loadFromString(proj_wkt)
+            messages.addMessage(f"CRS '{sr.name}' found in HEC-RAS project files.")
+        elif override_crs:
+            sr = override_crs
+            messages.addMessage(f"Using user-defined override CRS: {sr.name}")
+        else:
+            messages.addErrorMessage("CRS could not be determined. Please use the Override CRS parameter.")
+            raise arcpy.ExecuteError
+        
+        # Create feature dataset for this plan
+        feature_dataset_name = get_feature_dataset_name(hdf_path)
+        fd_path = setup_geodatabase_output(output_gdb, feature_dataset_name, sr, messages)
+        
+        # Check HDF contents
+        messages.addMessage("\nAnalyzing HDF file contents...")
+        with h5py.File(hdf_path, 'r') as hdf_file:
+            contents = self._check_hdf_contents(hdf_file)
+        
+        # Report what was found
+        if contents['has_1d']:
+            messages.addMessage(f"Found 1D geometry: {', '.join(contents['1d_elements'])}")
+        if contents['has_2d']:
+            messages.addMessage(f"Found 2D geometry: {', '.join(contents['2d_elements'])}")
+        if contents['has_pipes']:
+            messages.addMessage("Found pipe network data")
+        if contents['has_results']:
+            messages.addMessage(f"Found results data with {len(set(contents['result_profiles']))} output variables")
+        
+        # Create mock parameters class for tool execution
+        class MockParam:
+            def __init__(self, value):
+                self.value = value
+                self.valueAsText = str(value) if value else None
+                self.values = value if isinstance(value, list) else None
+        
+        # Process 1D Geometry
+        if contents['has_1d']:
+            messages.addMessage("\n--- Processing 1D Geometry ---")
+            tool_1d = LoadHECRAS1DGeometry()
+            
+            # Use the plan's feature dataset
+            fd_1d = fd_path
+            
+            # Create parameters for 1D tool
+            # Note: We pass None for geodatabase parameter to prevent the individual tools
+            # from overriding our carefully constructed feature class names that include
+            # the project name and plan number
+            params_1d = [
+                hdf_path,  # input HDF
+                override_crs,  # override CRS
+                contents['1d_elements'],  # elements to load
+                None, None, None, None, None,  # output paths (will be set individually)
+                None,  # geodatabase (None to prevent tools from overriding our paths)
+                False  # create_gdb (False because we already created it)
+            ]
+            
+            mock_params = [MockParam(p) for p in params_1d]
+            
+            # Set output paths with full naming convention for multi-plan processing
+            if "Cross Sections" in contents['1d_elements']:
+                fc_name = f"{project_name}_Plan_{plan_number}_CrossSections"
+                mock_params[3].valueAsText = os.path.join(fd_path, fc_name)
+            if "River Centerlines" in contents['1d_elements']:
+                fc_name = f"{project_name}_Plan_{plan_number}_RiverCenterlines"
+                mock_params[4].valueAsText = os.path.join(fd_path, fc_name)
+            if "Bank Lines" in contents['1d_elements']:
+                fc_name = f"{project_name}_Plan_{plan_number}_BankLines"
+                mock_params[5].valueAsText = os.path.join(fd_path, fc_name)
+            if "Edge Lines" in contents['1d_elements']:
+                fc_name = f"{project_name}_Plan_{plan_number}_EdgeLines"
+                mock_params[6].valueAsText = os.path.join(fd_path, fc_name)
+            if "1D Structures" in contents['1d_elements'] or "Hydraulic Structures" in contents['1d_elements']:
+                fc_name = f"{project_name}_Plan_{plan_number}_Structures1D"
+                mock_params[7].valueAsText = os.path.join(fd_path, fc_name)
+            
+            # Execute 1D tool
+            try:
+                tool_1d.execute(mock_params, messages)
+            except Exception as e:
+                messages.addWarning(f"Error processing 1D geometry: {e}")
+                messages.addWarning("Continuing with remaining data...")
+        
+        # Process 2D Geometry
+        if contents['has_2d']:
+            messages.addMessage("\n--- Processing 2D Geometry ---")
+            tool_2d = LoadHECRAS2DGeometry()
+            
+            # Determine which elements to load
+            elements_2d = contents['2d_elements'][:]
+            if include_cell_polygons:
+                elements_2d.append("Mesh Cells (Polygons)")
+            
+            # Create parameters for 2D tool
+            params_2d = [
+                hdf_path,  # input HDF
+                override_crs,  # override CRS
+                elements_2d,  # elements to load
+                None, None, None, None, None, None, None, None, None,  # output paths
+                None,  # geodatabase (None to prevent tools from overriding our paths)
+                False  # create_gdb
+            ]
+            
+            mock_params_2d = [MockParam(p) for p in params_2d]
+            
+            # Set output paths with full naming convention for multi-plan processing
+            # Map indices to element names
+            element_indices = {
+                3: ("2D Breaklines", "Breaklines2D"),
+                4: ("2D Boundary Condition Lines", "BCLines2D"),
+                5: ("Mesh Area Perimeters", "MeshPerimeters"),
+                6: ("Mesh Cell Centers", "MeshCellCenters"),
+                7: ("Mesh Cell Faces", "MeshCellFaces"),
+                8: ("Mesh Cells (Polygons)", "MeshCellPolygons"),
+                9: ("Pipe Conduits", "PipeConduits"),
+                10: ("Pipe Nodes", "PipeNodes"),
+                11: ("Pipe Networks", "PipeNetworks")
+            }
+            
+            for idx, (element_name, fc_base) in element_indices.items():
+                if element_name in elements_2d:
+                    fc_name = f"{project_name}_Plan_{plan_number}_{fc_base}"
+                    mock_params_2d[idx].valueAsText = os.path.join(fd_path, fc_name)
+            
+            # Execute 2D tool
+            try:
+                tool_2d.execute(mock_params_2d, messages)
+            except Exception as e:
+                messages.addWarning(f"Error processing 2D geometry: {e}")
+                messages.addWarning("Continuing with remaining data...")
+        
+        # Process Results
+        if contents['has_results'] and extract_all_results:
+            messages.addMessage("\n--- Processing Results ---")
+            tool_results = LoadHECRAS2DResults()
+            
+            # Create parameters for results tool
+            params_results = [
+                hdf_path,  # input HDF
+                override_crs,  # override CRS
+                ["Max WSE at Cell Centers", "Max Vel at Cell Faces"],  # results elements to load
+                None,  # output max wse
+                None,  # output max vel
+                None,  # geodatabase (None to prevent tools from overriding our paths)
+                False  # create_gdb
+            ]
+            
+            mock_params_results = [MockParam(p) for p in params_results]
+            
+            # Set result output paths with full naming convention
+            fc_name = f"{project_name}_Plan_{plan_number}_MaxWSE"
+            mock_params_results[3].valueAsText = os.path.join(fd_path, fc_name)
+            
+            fc_name = f"{project_name}_Plan_{plan_number}_MaxVelocity"
+            mock_params_results[4].valueAsText = os.path.join(fd_path, fc_name)
+            
+            # Execute results tool
+            try:
+                tool_results.execute(mock_params_results, messages)
+            except Exception as e:
+                messages.addWarning(f"Error processing results: {e}")
+                messages.addWarning("Continuing with remaining data...")
+        
+        messages.addMessage(f"\nCompleted processing: {os.path.basename(hdf_path)}")
+        return
+    
+    def getHelp(self, tool_name):
+        """Return help documentation URL for the tool."""
+        help_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
+                                "Doc", "RASCommander_Help.html")
+        if os.path.exists(help_file):
+            return f"file:///{help_file.replace(os.sep, '/')}#organize-hec-ras-project"
+        return None

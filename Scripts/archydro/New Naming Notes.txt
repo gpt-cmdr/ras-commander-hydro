@@ -1,0 +1,178 @@
+To assist with packaging of this toolbox with Arc Hydro Tools, the scripts will now be located in /Scripts/archydro
+
+All .py scripts will be prefixed by "rc_" (for ras commander)
+
+Due to the fact that __init__.py already exists in the Arc Hydro folder, we will need to manage our toolbox without using __init__.py, and be aware that in production a different __init__.py exists that we cannot control.  
+
+The Arc Hydro Team prefers that the RAS Commander Arc Hydro Tools conform to the existing flat file structure under /Scripts/archydro.  No other files exist in this folder with an rc_ prefix.  use lower case file names 
+
+Installation and Uninstallation scripts need to be changed
+
+Toolbox imports need to be revised
+
+Script imports using init py need to be revised and eliminate use of the init py.  
+
+
+
+Folder Mapping for ArcHydro Production: 
+
+/Images/ras-commander-archydro-revised.png
+This is used in the Help file and documentation
+
+/Scripts/archydro 
+All supporting .py files, organized to fit into the existing flat archydro file structure.  All .py files should start with rc_ prefix, use lower case file names and should not use __init__.py, as one already exists in this folder.  All imports should be relative, as the repository mirrors the final production folder structure.  
+
+/Templates/Layers/archydro
+Any layer lyrx files in this folder should be named lower case, with an "rc_" prefix.  I need a full guide on how to incorporate the use the .lyrx files into my toolbox's operations.  I understand I may need to calculate the max/min of a dataset to set the color ramp limits before inserting.  I need to figure out how to do this by looking up the ArcGIS Toolbox documentation and confirming how it is done elsewhere.  
+
+.
+
+
+
+
+
+
+
+
+
+
+
+We also need to figure out how to reliably document the toolbox within the ArcGIS toolbox environment (I have only had limited success).  There should be a full help file with the equivalent of a detailed README
+
+I need more prominent branding for CLB Engineering and RAS Commander within the toolbox using the SVG
+
+I need to add links to CLBEngineering.com and https://github.com/gpt-cmdr/ras-commander
+
+Also the repository for this toolbox: https://github.com/gpt-cmdr/ras-commander-hydro
+
+Write a Style Guide.md that includes the class and function naming conventions, and folder mapping and Naming Notes to keep the toolbox compatible with the existing build process for Arc Hydro Tools.   The Arc Hydro Developers will be cloning the repository 
+
+
+
+Write a README.md for the repository
+
+
+I also need a testing script that runs each tool in the toolbox over BaldEagle.p01.hdf (1D), BaldEagleDamBrk.p07.hdf (2D) and BeaverLakeSWMMImpor.p01.hdf (2D Pipes and Conduits) to build a full test suite.  
+
+
+
+
+C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox  is the location of ArcGIS's ArcToolbox folder on the local development machine.  Examples of how existing toolboxes operate can be found here, although no .pyt toolboxes are currently included. Search the web where needed to confirm how to perform specific goals in pyt toolboxes
+
+
+
+
+
+
+
+
+
+
+
+
+Initial Release
+
+- 1D and 2D Geometry Imports - Including Pipes and Conduits!
+
+
+
+Future Releases
+
+- 1D Results
+
+- Pipes and Conduits Results
+
+- Full Time Series Results
+
+- Land Use Layer Imports
+
+- Generating 2D Data in ArcGIS
+	- Sync Mesh Perimeter Changes back to HEC-RAS
+	- Sync Breaklines back to HEC-RAS
+	- 
+
+- Detailed Runtime Information (Plan, Unsteady Data for Model Inventories)
+
+
+- Sync Active Layers to/from RAS Mapper
+
+- Floodplain Mapping
+
+
+
+
+PRESENTATION
+
+
+
+This is focused on the HEC-RAS 6.x series - Older Versions (1D only) are supported by existing Arc Hydro Tools
+
+HEC-RAS 2025 is not yet ready for flood studies - support will be considered once development is stable
+
+
+
+Initial Release
+
+Initial release is focused on importing basic elements to *speed the creation of report figures and display of mesh results*
+
+- 1D and 2D Geometry Imports - Including Pipes and Conduits!
+
+- 2D Mesh Cells as Polygons 
+
+- 2D Mesh Results 
+
+- Organize an Entire HEC-RAS Project as Geodatabase
+
+
+Future Releases
+
+- 1D Results
+
+- Pipes and Conduits Results
+
+- Full Time Series Results
+
+- Land Use Layer Imports
+
+- Generating 2D Data in ArcGIS
+	- Sync Mesh Perimeter Changes back to HEC-RAS
+	- Sync Breaklines back to HEC-RAS
+	- 
+
+- Detailed Runtime Information (Plan, Unsteady Data for Model Inventories)
+
+
+- Sync Active Layers to/from RAS Mapper
+
+- Floodplain Mapping
+
+In the presentation, we should say this is a "Community Driven Effort - So we are looking for your feedback
+
+Are you a?  Municipality Looking to Include Rich HEC-RAS Data in your Dashboards?  And engineer communicating multi-hazard flood risk?  What preprocessing and postprocessing steps are you most interested in? Looking to use ArcGIS to prepare 2D model data?  Tell us what you would like to see: We are looking for your feedback to shape development efforts."
+
+How can we help you use HEC-RAS data for your municipal dashboards?
+
+Do you need to build Model Inventories for Local Flood Studies and BLE data?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

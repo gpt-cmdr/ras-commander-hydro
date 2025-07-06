@@ -354,6 +354,92 @@ def get_dynamic_fields_from_data(data_list):
     return fields
 
 
+def setup_geodatabase_output(gdb_path, feature_dataset_name, spatial_reference, messages):
+    """
+    Sets up geodatabase and feature dataset for organized output.
+    
+    Args:
+        gdb_path: Path to geodatabase
+        feature_dataset_name: Name of feature dataset to create (can be None)
+        spatial_reference: Spatial reference for the feature dataset
+        messages: ArcGIS messages object
+        
+    Returns:
+        Path to feature dataset or geodatabase
+    """
+    # Create geodatabase if it doesn't exist
+    if not arcpy.Exists(gdb_path):
+        gdb_folder = os.path.dirname(gdb_path)
+        gdb_name = os.path.basename(gdb_path)
+        arcpy.CreateFileGDB_management(gdb_folder, gdb_name)
+        messages.addMessage(f"Created geodatabase: {gdb_path}")
+    
+    # Create feature dataset if name provided
+    if feature_dataset_name:
+        fd_path = os.path.join(gdb_path, feature_dataset_name)
+        if not arcpy.Exists(fd_path):
+            arcpy.CreateFeatureDataset_management(gdb_path, feature_dataset_name, spatial_reference)
+            messages.addMessage(f"Created feature dataset: {feature_dataset_name}")
+        return fd_path
+    
+    return gdb_path
+
+
+def get_unique_fc_name(workspace, base_name):
+    """
+    Generates a unique feature class name in the workspace.
+    
+    Args:
+        workspace: Geodatabase or feature dataset path
+        base_name: Desired feature class name
+        
+    Returns:
+        Unique feature class name
+    """
+    fc_name = base_name
+    counter = 1
+    while arcpy.Exists(os.path.join(workspace, fc_name)):
+        fc_name = f"{base_name}_{counter}"
+        counter += 1
+    return fc_name
+
+
+def add_feature_class_metadata(fc_path, description, source_file):
+    """
+    Add metadata to a feature class.
+    
+    Args:
+        fc_path: Path to feature class
+        description: Description of the feature class
+        source_file: Source HDF file path
+    """
+    try:
+        metadata = arcpy.metadata.Metadata(fc_path)
+        metadata.description = description
+        metadata.summary = f"Extracted from HEC-RAS file: {os.path.basename(source_file)}"
+        metadata.tags = "HEC-RAS, Hydraulic Modeling, RAS Commander"
+        metadata.save()
+    except Exception as e:
+        # Metadata operations may fail in some environments, don't stop execution
+        arcpy.AddWarning(f"Could not add metadata to {os.path.basename(fc_path)}: {e}")
+
+
+def apply_symbology_from_layer(fc_path, layer_file_path):
+    """
+    Apply symbology from a layer file to a feature class.
+    
+    Args:
+        fc_path: Path to feature class
+        layer_file_path: Path to .lyrx file with symbology
+    """
+    try:
+        if arcpy.Exists(layer_file_path):
+            arcpy.ApplySymbologyFromLayer_management(fc_path, layer_file_path)
+    except Exception as e:
+        # Symbology operations are optional, don't stop execution
+        arcpy.AddWarning(f"Could not apply symbology: {e}")
+
+
 def write_features_to_fc(output_fc, sr, geom_type, fields, data, geometries, messages):
     """Optimized feature writing with batch operations."""
     total_features = len(geometries)
@@ -453,3 +539,87 @@ def write_features_to_fc(output_fc, sr, geom_type, fields, data, geometries, mes
             messages.addErrorMessage(f"  Original error: {e}")
         else:
             messages.addErrorMessage(f"Failed during feature creation for {output_fc}: {e}")
+
+
+def extract_project_and_plan_info(hdf_path):
+    """
+    Extract project name and plan number from HDF file path.
+    
+    Args:
+        hdf_path: Path to HDF file (e.g., "BaldEagleDamBrk.p07.hdf")
+        
+    Returns:
+        tuple: (project_name, plan_number, base_name)
+        Example: ("BaldEagleDamBrk", "07", "BaldEagleDamBrk.p07")
+    """
+    filename = os.path.basename(hdf_path)
+    base_name = os.path.splitext(filename)[0]
+    
+    # Try to match pattern: ProjectName.pXX
+    match = re.match(r'^(.+?)\.p(\d{2})$', base_name)
+    
+    if match:
+        project_name = match.group(1)
+        plan_number = match.group(2)
+    else:
+        # Fallback: use whole base name as project
+        project_name = base_name
+        plan_number = "00"
+    
+    return project_name, plan_number, base_name
+
+
+def create_geodatabase_from_hdf(hdf_path, messages=None):
+    """
+    Create a geodatabase path based on HDF file name.
+    
+    Args:
+        hdf_path: Path to HDF file
+        messages: Optional messages object for logging
+        
+    Returns:
+        Path to geodatabase
+    """
+    project_name, plan_number, base_name = extract_project_and_plan_info(hdf_path)
+    
+    # Create geodatabase name
+    gdb_name = f"{base_name}.gdb"
+    gdb_folder = os.path.dirname(hdf_path)
+    gdb_path = os.path.join(gdb_folder, gdb_name)
+    
+    # Create if doesn't exist
+    if not arcpy.Exists(gdb_path):
+        arcpy.CreateFileGDB_management(gdb_folder, gdb_name)
+        if messages:
+            messages.addMessage(f"Created geodatabase: {gdb_path}")
+    
+    return gdb_path
+
+
+def get_feature_dataset_name(hdf_path):
+    """
+    Get feature dataset name based on project and plan.
+    
+    Args:
+        hdf_path: Path to HDF file
+        
+    Returns:
+        Feature dataset name (e.g., "BaldEagleDamBrk_Plan07")
+    """
+    project_name, plan_number, _ = extract_project_and_plan_info(hdf_path)
+    return f"{project_name}_Plan{plan_number}"
+
+
+def get_feature_class_name(base_name, project_name, plan_number):
+    """
+    Get feature class name with project and plan info.
+    
+    Args:
+        base_name: Base feature class name (e.g., "CrossSections")
+        project_name: Project name
+        plan_number: Plan number
+        
+    Returns:
+        Full feature class name
+    """
+    return f"{base_name}_{project_name}_Plan{plan_number}"

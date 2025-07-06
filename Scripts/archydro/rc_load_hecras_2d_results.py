@@ -13,11 +13,18 @@ import numpy as np
 from datetime import datetime, timedelta
 
 # Import helper functions from utils
-from .utils import (
+from rc_utils import (
     get_ras_projection_wkt,
     get_polyline_centroid_vectorized,
     cache_hdf_metadata,
-    write_features_to_fc
+    write_features_to_fc,
+    setup_geodatabase_output,
+    get_unique_fc_name,
+    add_feature_class_metadata,
+    extract_project_and_plan_info,
+    create_geodatabase_from_hdf,
+    get_feature_dataset_name,
+    get_feature_class_name
 )
 
 
@@ -62,9 +69,15 @@ class LoadHECRAS2DResults(object):
             
             # Output parameters
             arcpy.Parameter(displayName="Output Max WSE at Cell Centers", name="output_max_wse", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output"),
+                          parameterType="Optional", direction="Output", category="Outputs"),
             arcpy.Parameter(displayName="Output Max Vel at Cell Faces", name="output_max_face_vel", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output")
+                          parameterType="Optional", direction="Output", category="Outputs"),
+            
+            # Geodatabase organization parameters
+            arcpy.Parameter(displayName="Output Geodatabase (Optional)", name="output_gdb", datatype="DEWorkspace", 
+                          parameterType="Optional", direction="Output", category="Output"),
+            arcpy.Parameter(displayName="Create New Geodatabase", name="create_gdb", datatype="GPBoolean", 
+                          parameterType="Optional", direction="Input", category="Output")
         ]
         
         # Configure HDF file filter
@@ -91,6 +104,14 @@ class LoadHECRAS2DResults(object):
         params[4].description = """Output feature class for maximum face velocity points. 
         Includes attributes for face ID, mesh name, maximum velocity value, and time of occurrence."""
         
+        # Geodatabase parameters
+        params[5].description = """Specify a geodatabase to organize all output feature classes. 
+        If provided, outputs will be created in this geodatabase instead of the default locations."""
+        
+        params[6].value = True  # Default to creating new geodatabase
+        params[6].description = """Create a new geodatabase based on the HDF file name. 
+        The geodatabase will be named using the pattern: ProjectName.pXX.gdb"""
+        
         return params
 
     def isLicensed(self):
@@ -106,6 +127,18 @@ class LoadHECRAS2DResults(object):
             # Enable/disable outputs based on selection
             parameters[3].enabled = self.MAX_WSE_POINTS in selected
             parameters[4].enabled = self.MAX_FACE_VEL_POINTS in selected
+        
+        # Auto-populate geodatabase path when HDF file is selected
+        if parameters[0].value and parameters[0].altered:  # input_hdf
+            hdf_path = parameters[0].valueAsText
+            
+            # If create_gdb is True, auto-populate geodatabase path
+            if parameters[6].value:  # create_gdb
+                project_name, plan_number, base_name = extract_project_and_plan_info(hdf_path)
+                gdb_name = f"{base_name}.gdb"
+                gdb_path = os.path.join(os.path.dirname(hdf_path), gdb_name)
+                parameters[5].value = gdb_path
+        
         return
     
     def updateMessages(self, parameters):
@@ -117,6 +150,11 @@ class LoadHECRAS2DResults(object):
                 parameters[0].setWarningMessage(
                     "This appears to be a geometry file (g*.hdf). Results data is typically in plan files (p*.hdf)."
                 )
+        
+        # Clear geodatabase validation error if create_gdb is True
+        if parameters[6].value and parameters[5].hasError():  # create_gdb and output_gdb has error
+            parameters[5].clearMessage()
+        
         return
 
     # --- HDF Data Extraction Methods ---
@@ -327,6 +365,14 @@ class LoadHECRAS2DResults(object):
             messages.addErrorMessage("No results elements selected for loading. Please select at least one element.")
             raise arcpy.ExecuteError
         
+        # Get geodatabase parameters
+        output_gdb = parameters[5].valueAsText if len(parameters) > 5 else None
+        create_gdb = parameters[6].value if len(parameters) > 6 else False
+        output_workspace = None
+        
+        # Extract project and plan info
+        project_name, plan_number, base_name = extract_project_and_plan_info(hdf_path)
+        
         # Get projection
         proj_wkt = get_ras_projection_wkt(hdf_path)
         sr = None
@@ -341,6 +387,17 @@ class LoadHECRAS2DResults(object):
             messages.addErrorMessage("CRS could not be determined. Please use the Override CRS parameter.")
             raise arcpy.ExecuteError
         
+        # Setup geodatabase
+        if create_gdb or output_gdb:
+            if create_gdb and not output_gdb:
+                # Auto-create geodatabase based on HDF name
+                output_gdb = create_geodatabase_from_hdf(hdf_path, messages)
+            
+            # Create feature dataset with project/plan naming
+            feature_dataset_name = get_feature_dataset_name(hdf_path)
+            output_workspace = setup_geodatabase_output(output_gdb, feature_dataset_name, sr, messages)
+            messages.addMessage(f"Output workspace set to: {output_workspace}")
+        
         # Open HDF file once and cache metadata
         with h5py.File(hdf_path, 'r') as hdf_file:
             messages.addMessage("Caching HDF metadata...")
@@ -354,19 +411,37 @@ class LoadHECRAS2DResults(object):
             # Process results elements
             if self.MAX_WSE_POINTS in results_elements and parameters[3].valueAsText:
                 output_fc = parameters[3].valueAsText
+                
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "MaxWSE"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[3].value = output_fc
+                
                 messages.addMessage("Extracting Maximum Water Surface Elevation points...")
                 data, geoms = self._get_max_wse_points_direct(hdf_file, sr)
                 fields = [("mesh_name", "TEXT"), ("cell_id", "LONG"), ("max_wse", "DOUBLE"), 
                          ("max_wse_time", "DATE")]
                 write_features_to_fc(output_fc, sr, "POINT", fields, data, geoms, messages)
+                if output_workspace and data:
+                    add_feature_class_metadata(output_fc, "Maximum water surface elevation at cell centers", hdf_path)
             
             if self.MAX_FACE_VEL_POINTS in results_elements and parameters[4].valueAsText:
                 output_fc = parameters[4].valueAsText
+                
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "MaxVelocity"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[4].value = output_fc
+                
                 messages.addMessage("Extracting Maximum Face Velocity points...")
                 data, geoms = self._get_max_face_velocity_points_direct(hdf_file, sr)
                 fields = [("mesh_name", "TEXT"), ("face_id", "LONG"), ("max_vel", "DOUBLE"), 
                          ("time_of_max", "DATE")]
                 write_features_to_fc(output_fc, sr, "POINT", fields, data, geoms, messages)
+                if output_workspace and data:
+                    add_feature_class_metadata(output_fc, "Maximum velocity at cell faces", hdf_path)
         
         messages.addMessage("\nProcessing complete.")
         return

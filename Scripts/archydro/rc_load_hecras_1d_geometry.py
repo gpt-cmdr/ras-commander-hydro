@@ -12,11 +12,18 @@ import h5py
 import numpy as np
 
 # Import helper functions from utils
-from .utils import (
+from rc_utils import (
     get_ras_projection_wkt,
     cache_hdf_metadata,
     write_features_to_fc,
-    get_dynamic_fields_from_data
+    get_dynamic_fields_from_data,
+    setup_geodatabase_output,
+    get_unique_fc_name,
+    add_feature_class_metadata,
+    extract_project_and_plan_info,
+    create_geodatabase_from_hdf,
+    get_feature_dataset_name,
+    get_feature_class_name
 )
 
 
@@ -35,7 +42,7 @@ class LoadHECRAS1DGeometry(object):
         • River Centerlines - Main river/reach centerlines
         • Bank Lines - Left and right bank lines
         • Edge Lines - River edge lines for terrain processing
-        • Hydraulic Structures - Bridges, culverts, weirs, and other structures
+        • 1D Structures - Bridges, culverts, weirs, and other structures
         
         Note: Each selected element will create a separate feature class."""
         self.canRunInBackground = False
@@ -45,7 +52,7 @@ class LoadHECRAS1DGeometry(object):
         self.RIVER_CENTERLINES = "River Centerlines"
         self.BANK_LINES = "Bank Lines"
         self.EDGE_LINES = "Edge Lines"
-        self.STRUCTURES = "Hydraulic Structures"
+        self.STRUCTURES = "1D Structures"
         
         # Cache for HDF metadata
         self._hdf_cache = {}
@@ -73,8 +80,14 @@ class LoadHECRAS1DGeometry(object):
                           parameterType="Optional", direction="Output", category="Outputs"),
             arcpy.Parameter(displayName="Output Edge Lines", name="output_edge_lines", datatype="DEFeatureClass", 
                           parameterType="Optional", direction="Output", category="Outputs"),
-            arcpy.Parameter(displayName="Output Hydraulic Structures", name="output_structures", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs")
+            arcpy.Parameter(displayName="Output 1D Structures", name="output_structures", datatype="DEFeatureClass", 
+                          parameterType="Optional", direction="Output", category="Outputs"),
+            
+            # Geodatabase organization parameters
+            arcpy.Parameter(displayName="Output Geodatabase (Optional)", name="output_gdb", datatype="DEWorkspace", 
+                          parameterType="Optional", direction="Output", category="Output"),
+            arcpy.Parameter(displayName="Create New Geodatabase", name="create_gdb", datatype="GPBoolean", 
+                          parameterType="Optional", direction="Input", category="Output")
         ]
         
         # Configure HDF file filter
@@ -104,8 +117,16 @@ class LoadHECRAS1DGeometry(object):
         params[6].value = r"memory\EdgeLines"
         params[6].description = "Output feature class for river edge lines."
         
-        params[7].value = r"memory\HydraulicStructures"
-        params[7].description = "Output feature class for hydraulic structures (bridges, culverts, etc.)."
+        params[7].value = r"memory\Structures1D"
+        params[7].description = "Output feature class for 1D structures (bridges, culverts, etc.)."
+        
+        # Geodatabase parameters
+        params[8].description = """Specify a geodatabase to organize all output feature classes. 
+        If provided, outputs will be created in this geodatabase instead of the default locations."""
+        
+        params[9].value = True  # Default to creating new geodatabase
+        params[9].description = """Create a new geodatabase based on the HDF file name. 
+        The geodatabase will be named using the pattern: ProjectName.pXX.gdb"""
         
         return params
 
@@ -125,10 +146,24 @@ class LoadHECRAS1DGeometry(object):
             parameters[5].enabled = self.BANK_LINES in selected
             parameters[6].enabled = self.EDGE_LINES in selected
             parameters[7].enabled = self.STRUCTURES in selected
+            
+        # Auto-populate geodatabase path when HDF file is selected
+        if parameters[0].value and parameters[0].altered:  # input_hdf
+            hdf_path = parameters[0].valueAsText
+            
+            # If create_gdb is True, auto-populate geodatabase path
+            if parameters[9].value:  # create_gdb
+                project_name, plan_number, base_name = extract_project_and_plan_info(hdf_path)
+                gdb_name = f"{base_name}.gdb"
+                gdb_path = os.path.join(os.path.dirname(hdf_path), gdb_name)
+                parameters[8].value = gdb_path
         return
     
     def updateMessages(self, parameters):
         """Modify messages created by internal validation."""
+        # Clear geodatabase validation error if create_gdb is True
+        if parameters[9].value and parameters[8].hasError():  # create_gdb and output_gdb has error
+            parameters[8].clearMessage()
         return
 
     # --- HDF Data Extraction Methods ---
@@ -138,7 +173,16 @@ class LoadHECRAS1DGeometry(object):
         try:
             xs_path = "Geometry/Cross Sections"
             if xs_path not in hdf_file:
+                arcpy.AddMessage("No cross sections found in HDF file.")
                 return [], []
+            
+            # Check if required datasets exist
+            required_datasets = ["Attributes", "Polyline Info", "Polyline Points", 
+                               "Station Elevation Info", "Station Elevation Values"]
+            for dataset in required_datasets:
+                if f"{xs_path}/{dataset}" not in hdf_file:
+                    arcpy.AddWarning(f"Cross sections data incomplete: missing '{dataset}' dataset.")
+                    return [], []
             
             # Get attributes
             attributes = hdf_file[f"{xs_path}/Attributes"][()]
@@ -206,8 +250,8 @@ class LoadHECRAS1DGeometry(object):
             return valid_data, geometries
             
         except Exception as e:
-            arcpy.AddError(f"HDF Read Error (Cross Sections): {e}")
-            raise arcpy.ExecuteError("Failed to read cross sections from HDF file")
+            arcpy.AddWarning(f"Error reading cross sections: {e}")
+            return [], []
 
     def _get_river_centerlines_direct(self, hdf_file, sr):
         """Extracts river centerlines from HDF file."""
@@ -261,6 +305,7 @@ class LoadHECRAS1DGeometry(object):
         try:
             bank_lines_path = "Geometry/River Bank Lines"
             if bank_lines_path not in hdf_file:
+                arcpy.AddMessage("No bank lines found in HDF file.")
                 return [], []
             
             # Get polyline geometry
@@ -297,14 +342,15 @@ class LoadHECRAS1DGeometry(object):
             return valid_data, geometries
             
         except Exception as e:
-            arcpy.AddError(f"HDF Read Error (Bank Lines): {e}")
-            raise arcpy.ExecuteError("Failed to read bank lines from HDF file")
+            arcpy.AddWarning(f"Error reading bank lines: {e}")
+            return [], []
 
     def _get_edge_lines_direct(self, hdf_file, sr):
         """Extracts edge lines from HDF file."""
         try:
             edge_lines_path = "Geometry/River Edge Lines"
             if edge_lines_path not in hdf_file:
+                arcpy.AddMessage("No edge lines found in HDF file.")
                 return [], []
             
             # Get polyline geometry
@@ -335,14 +381,15 @@ class LoadHECRAS1DGeometry(object):
             return valid_data, geometries
             
         except Exception as e:
-            arcpy.AddError(f"HDF Read Error (Edge Lines): {e}")
-            raise arcpy.ExecuteError("Failed to read edge lines from HDF file")
+            arcpy.AddWarning(f"Error reading edge lines: {e}")
+            return [], []
 
     def _get_structures_direct(self, hdf_file, sr):
         """Extracts hydraulic structures from HDF file."""
         try:
             structures_path = "Geometry/Structures"
             if structures_path not in hdf_file:
+                arcpy.AddMessage("No hydraulic structures found in HDF file.")
                 return [], []
             
             # Get attributes
@@ -385,8 +432,8 @@ class LoadHECRAS1DGeometry(object):
             return valid_data, geometries
             
         except Exception as e:
-            arcpy.AddError(f"HDF Read Error (Structures): {e}")
-            raise arcpy.ExecuteError("Failed to read structures from HDF file")
+            arcpy.AddWarning(f"Error reading 1D structures: {e}")
+            return [], []
 
     # --- Main Execution Logic ---
     def execute(self, parameters, messages):
@@ -398,6 +445,14 @@ class LoadHECRAS1DGeometry(object):
         if not geometry_elements:
             messages.addErrorMessage("No geometry elements selected for loading. Please select at least one element.")
             raise arcpy.ExecuteError
+        
+        # Get geodatabase parameters
+        output_gdb = parameters[8].valueAsText
+        create_gdb = parameters[9].value
+        output_workspace = None
+        
+        # Extract project and plan info
+        project_name, plan_number, base_name = extract_project_and_plan_info(hdf_path)
         
         # Get projection
         proj_wkt = get_ras_projection_wkt(hdf_path)
@@ -413,6 +468,17 @@ class LoadHECRAS1DGeometry(object):
             messages.addErrorMessage("CRS could not be determined. Please use the Override CRS parameter.")
             raise arcpy.ExecuteError
         
+        # Setup geodatabase
+        if create_gdb or output_gdb:
+            if create_gdb and not output_gdb:
+                # Auto-create geodatabase based on HDF name
+                output_gdb = create_geodatabase_from_hdf(hdf_path, messages)
+            
+            # Create feature dataset with project/plan naming
+            feature_dataset_name = get_feature_dataset_name(hdf_path)
+            output_workspace = setup_geodatabase_output(output_gdb, feature_dataset_name, sr, messages)
+            messages.addMessage(f"Output workspace set to: {output_workspace}")
+        
         # Open HDF file once
         with h5py.File(hdf_path, 'r') as hdf_file:
             messages.addMessage("Reading HDF file structure...")
@@ -420,6 +486,12 @@ class LoadHECRAS1DGeometry(object):
             # Process geometry elements
             if self.CROSS_SECTIONS in geometry_elements and parameters[3].valueAsText:
                 output_fc = parameters[3].valueAsText
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "CrossSections"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[3].value = output_fc
+                
                 messages.addMessage("Extracting Cross Sections...")
                 data, geoms = self._get_cross_sections_direct(hdf_file, sr)
                 fields = [("xs_id", "LONG"), ("River", "TEXT"), ("Reach", "TEXT"), 
@@ -427,36 +499,70 @@ class LoadHECRAS1DGeometry(object):
                          ("LenLeft", "DOUBLE"), ("LenChannel", "DOUBLE"), ("LenRight", "DOUBLE"),
                          ("StationElevation", "TEXT", 255), ("ManningsN", "TEXT", 255)]
                 write_features_to_fc(output_fc, sr, "POLYLINE", fields, data, geoms, messages)
+                if output_workspace and data:
+                    add_feature_class_metadata(output_fc, "River cross section cut lines with station-elevation data", hdf_path)
             
             if self.RIVER_CENTERLINES in geometry_elements and parameters[4].valueAsText:
                 output_fc = parameters[4].valueAsText
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "RiverCenterlines"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[4].value = output_fc
+                
                 messages.addMessage("Extracting River Centerlines...")
                 data, geoms = self._get_river_centerlines_direct(hdf_file, sr)
                 fields = [("river_id", "LONG"), ("RiverName", "TEXT"), ("ReachName", "TEXT"),
                          ("USType", "TEXT"), ("DSType", "TEXT")]
                 write_features_to_fc(output_fc, sr, "POLYLINE", fields, data, geoms, messages)
+                if output_workspace and data:
+                    add_feature_class_metadata(output_fc, "Main river/reach centerlines", hdf_path)
             
             if self.BANK_LINES in geometry_elements and parameters[5].valueAsText:
                 output_fc = parameters[5].valueAsText
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "BankLines"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[5].value = output_fc
+                
                 messages.addMessage("Extracting Bank Lines...")
                 data, geoms = self._get_bank_lines_direct(hdf_file, sr)
                 fields = [("bank_id", "LONG"), ("BankSide", "TEXT"), ("Length", "DOUBLE")]
                 write_features_to_fc(output_fc, sr, "POLYLINE", fields, data, geoms, messages)
+                if output_workspace and data:
+                    add_feature_class_metadata(output_fc, "Left and right bank lines", hdf_path)
             
             if self.EDGE_LINES in geometry_elements and parameters[6].valueAsText:
                 output_fc = parameters[6].valueAsText
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "EdgeLines"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[6].value = output_fc
+                
                 messages.addMessage("Extracting Edge Lines...")
                 data, geoms = self._get_edge_lines_direct(hdf_file, sr)
                 fields = [("edge_id", "LONG"), ("EdgeType", "TEXT"), ("Length", "DOUBLE")]
                 write_features_to_fc(output_fc, sr, "POLYLINE", fields, data, geoms, messages)
+                if output_workspace and data:
+                    add_feature_class_metadata(output_fc, "River edge lines for terrain processing", hdf_path)
             
             if self.STRUCTURES in geometry_elements and parameters[7].valueAsText:
                 output_fc = parameters[7].valueAsText
-                messages.addMessage("Extracting Hydraulic Structures...")
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "Structures1D"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[7].value = output_fc
+                
+                messages.addMessage("Extracting 1D Structures...")
                 data, geoms = self._get_structures_direct(hdf_file, sr)
                 fields = [("struct_id", "LONG"), ("Type", "TEXT"), ("River", "TEXT"),
                          ("Reach", "TEXT"), ("RS", "TEXT"), ("Description", "TEXT", 255)]
                 write_features_to_fc(output_fc, sr, "POLYLINE", fields, data, geoms, messages)
+                if output_workspace and data:
+                    add_feature_class_metadata(output_fc, "Bridges, culverts, weirs, and other 1D structures", hdf_path)
         
         messages.addMessage("\nProcessing complete.")
         return

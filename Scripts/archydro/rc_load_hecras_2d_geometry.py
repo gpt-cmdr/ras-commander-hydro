@@ -13,13 +13,20 @@ import numpy as np
 from collections import defaultdict
 
 # Import helper functions from utils
-from .utils import (
+from rc_utils import (
     get_ras_projection_wkt,
     polygonize_arcpy_optimized,
     get_polyline_centroid_vectorized,
     cache_hdf_metadata,
     write_features_to_fc,
-    get_dynamic_fields_from_data
+    get_dynamic_fields_from_data,
+    setup_geodatabase_output,
+    get_unique_fc_name,
+    add_feature_class_metadata,
+    extract_project_and_plan_info,
+    create_geodatabase_from_hdf,
+    get_feature_dataset_name,
+    get_feature_class_name
 )
 
 
@@ -94,7 +101,13 @@ class LoadHECRAS2DGeometry(object):
             arcpy.Parameter(displayName="Output Pipe Nodes", name="output_pipe_nodes", datatype="DEFeatureClass", 
                           parameterType="Optional", direction="Output", category="Outputs"),
             arcpy.Parameter(displayName="Output Pipe Networks", name="output_pipe_networks", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs")
+                          parameterType="Optional", direction="Output", category="Outputs"),
+            
+            # Geodatabase organization parameters
+            arcpy.Parameter(displayName="Output Geodatabase (Optional)", name="output_gdb", datatype="DEWorkspace", 
+                          parameterType="Optional", direction="Output", category="Output"),
+            arcpy.Parameter(displayName="Create New Geodatabase", name="create_gdb", datatype="GPBoolean", 
+                          parameterType="Optional", direction="Input", category="Output")
         ]
         
         # Configure HDF file filter
@@ -139,6 +152,14 @@ class LoadHECRAS2DGeometry(object):
         params[11].value = r"memory\PipeNetworks"
         params[11].description = "Output feature class for pipe network elements."
         
+        # Geodatabase parameters
+        params[12].description = """Specify a geodatabase to organize all output feature classes. 
+        If provided, outputs will be created in this geodatabase instead of the default locations."""
+        
+        params[13].value = True  # Default to creating new geodatabase
+        params[13].description = """Create a new geodatabase based on the HDF file name. 
+        The geodatabase will be named using the pattern: ProjectName.pXX.gdb"""
+        
         return params
 
     def isLicensed(self):
@@ -161,6 +182,17 @@ class LoadHECRAS2DGeometry(object):
             parameters[9].enabled = self.PIPE_CONDUITS in selected
             parameters[10].enabled = self.PIPE_NODES in selected
             parameters[11].enabled = self.PIPE_NETWORKS in selected
+            
+        # Auto-populate geodatabase path when HDF file is selected
+        if parameters[0].value and parameters[0].altered:  # input_hdf
+            hdf_path = parameters[0].valueAsText
+            
+            # If create_gdb is True, auto-populate geodatabase path
+            if parameters[13].value:  # create_gdb
+                project_name, plan_number, base_name = extract_project_and_plan_info(hdf_path)
+                gdb_name = f"{base_name}.gdb"
+                gdb_path = os.path.join(os.path.dirname(hdf_path), gdb_name)
+                parameters[12].value = gdb_path
         return
     
     def updateMessages(self, parameters):
@@ -171,6 +203,11 @@ class LoadHECRAS2DGeometry(object):
                 "Creating cell polygons can be time-consuming for large meshes (>100,000 cells). "
                 "Consider using cell centers or faces for visualization instead."
             )
+        
+        # Clear geodatabase validation error if create_gdb is True
+        if parameters[13].value and parameters[12].hasError():  # create_gdb and output_gdb has error
+            parameters[12].clearMessage()
+        
         return
 
     # --- HDF Data Extraction Methods ---
@@ -411,8 +448,8 @@ class LoadHECRAS2DGeometry(object):
             return valid_data, geometries
             
         except Exception as e:
-            arcpy.AddError(f"HDF Read Error (Pipe Conduits): {e}")
-            raise arcpy.ExecuteError("Failed to read pipe conduits from HDF file")
+            arcpy.AddWarning(f"Could not read pipe conduits: {e}")
+            return [], []
 
     def _get_pipe_nodes_direct(self, hdf_file, sr):
         """Extracts pipe nodes from HDF file with dynamic attributes."""
@@ -501,8 +538,8 @@ class LoadHECRAS2DGeometry(object):
             return valid_data, geometries
             
         except Exception as e:
-            arcpy.AddError(f"HDF Read Error (Pipe Nodes): {e}")
-            raise arcpy.ExecuteError("Failed to read pipe nodes from HDF file")
+            arcpy.AddWarning(f"Could not read pipe nodes: {e}")
+            return [], []
 
     def _get_pipe_networks_direct(self, hdf_file, sr):
         """Extracts pipe network cell polygons from HDF file."""
@@ -645,8 +682,8 @@ class LoadHECRAS2DGeometry(object):
             return valid_data, geometries
             
         except Exception as e:
-            arcpy.AddError(f"HDF Read Error (Pipe Networks): {e}")
-            raise arcpy.ExecuteError("Failed to read pipe networks from HDF file")
+            arcpy.AddWarning(f"Could not read pipe networks: {e}")
+            return [], []
 
     def _get_mesh_areas_direct(self, hdf_file, sr):
         """Extracts mesh area perimeters from HDF file."""
@@ -889,6 +926,14 @@ class LoadHECRAS2DGeometry(object):
             messages.addErrorMessage("No geometry elements selected for loading. Please select at least one element.")
             raise arcpy.ExecuteError
         
+        # Get geodatabase parameters
+        output_gdb = parameters[12].valueAsText
+        create_gdb = parameters[13].value
+        output_workspace = None
+        
+        # Extract project and plan info
+        project_name, plan_number, base_name = extract_project_and_plan_info(hdf_path)
+        
         # Get projection
         proj_wkt = get_ras_projection_wkt(hdf_path)
         sr = None
@@ -902,6 +947,17 @@ class LoadHECRAS2DGeometry(object):
         else:
             messages.addErrorMessage("CRS could not be determined. Please use the Override CRS parameter.")
             raise arcpy.ExecuteError
+        
+        # Setup geodatabase
+        if create_gdb or output_gdb:
+            if create_gdb and not output_gdb:
+                # Auto-create geodatabase based on HDF name
+                output_gdb = create_geodatabase_from_hdf(hdf_path, messages)
+            
+            # Create feature dataset with project/plan naming
+            feature_dataset_name = get_feature_dataset_name(hdf_path)
+            output_workspace = setup_geodatabase_output(output_gdb, feature_dataset_name, sr, messages)
+            messages.addMessage(f"Output workspace set to: {output_workspace}")
         
         # Open HDF file once and cache metadata
         with h5py.File(hdf_path, 'r') as hdf_file:
@@ -918,77 +974,161 @@ class LoadHECRAS2DGeometry(object):
             # Process geometry elements
             if self.BREAKLINES in geometry_elements and parameters[3].valueAsText:
                 output_fc = parameters[3].valueAsText
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "Breaklines2D"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[3].value = output_fc
+                
                 data, geoms = self._get_breaklines_direct(hdf_file, sr)
                 fields = [("bl_id", "LONG"), ("Name", "TEXT"), ("CellSpaceNear", "FLOAT"), 
                          ("CellSpaceFar", "FLOAT"), ("NearRepeats", "LONG"), ("ProtectRadius", "LONG")]
                 write_features_to_fc(output_fc, sr, "POLYLINE", fields, data, geoms, messages)
+                if output_workspace and data:
+                    add_feature_class_metadata(output_fc, "2D breaklines with cell spacing attributes", hdf_path)
             
             if self.BC_LINES in geometry_elements and parameters[4].valueAsText:
                 output_fc = parameters[4].valueAsText
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "BCLines2D"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[4].value = output_fc
+                
                 data, geoms = self._get_bc_lines_direct(hdf_file, sr)
                 fields = [("bc_id", "LONG"), ("Name", "TEXT"), ("Type", "TEXT")]
                 write_features_to_fc(output_fc, sr, "POLYLINE", fields, data, geoms, messages)
+                if output_workspace and data:
+                    add_feature_class_metadata(output_fc, "2D boundary condition lines", hdf_path)
             
             if self.PERIMETERS in geometry_elements and parameters[5].valueAsText:
                 output_fc = parameters[5].valueAsText
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "MeshPerimeters"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[5].value = output_fc
+                
                 data, geoms = self._get_mesh_areas_direct(hdf_file, sr)
                 fields = [("mesh_name", "TEXT")]
                 write_features_to_fc(output_fc, sr, "POLYGON", fields, data, geoms, messages)
+                if output_workspace and data:
+                    add_feature_class_metadata(output_fc, "2D flow area perimeter polygons", hdf_path)
             
             if self.CELL_POINTS in geometry_elements and parameters[6].valueAsText:
                 output_fc = parameters[6].valueAsText
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "MeshCellCenters"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[6].value = output_fc
+                
                 data, geoms = self._get_mesh_cell_points_direct(hdf_file, sr)
                 fields = [("mesh_name", "TEXT"), ("cell_id", "LONG")]
                 write_features_to_fc(output_fc, sr, "POINT", fields, data, geoms, messages)
+                if output_workspace and data:
+                    add_feature_class_metadata(output_fc, "Mesh cell center points", hdf_path)
             
             if self.CELL_FACES in geometry_elements and parameters[7].valueAsText:
                 output_fc = parameters[7].valueAsText
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "MeshCellFaces"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[7].value = output_fc
+                
                 if precomputed_faces:
                     data, geoms = precomputed_faces
                     fields = [("mesh_name", "TEXT"), ("face_id", "LONG")]
                     write_features_to_fc(output_fc, sr, "POLYLINE", fields, data, geoms, messages)
+                    if output_workspace and data:
+                        add_feature_class_metadata(output_fc, "Mesh cell face polylines", hdf_path)
             
             if self.CELL_POLYS in geometry_elements and parameters[8].valueAsText:
                 output_fc = parameters[8].valueAsText
+                # Update output path if using geodatabase
+                if output_workspace:
+                    fc_name = "MeshCellPolygons"
+                    output_fc = os.path.join(output_workspace, fc_name)
+                    parameters[8].value = output_fc
+                
                 if precomputed_faces:
                     messages.addMessage("Constructing cell polygons from faces...")
                     data, geoms = self._get_mesh_cells_direct(hdf_file, sr, precomputed_faces, messages)
                     fields = [("mesh_name", "TEXT"), ("cell_id", "LONG")]
                     write_features_to_fc(output_fc, sr, "POLYGON", fields, data, geoms, messages)
+                    if output_workspace and data:
+                        add_feature_class_metadata(output_fc, "Mesh cell polygons", hdf_path)
             
             # Process pipe network elements
+            # Pipe networks use the same feature dataset as other geometry
+            pipe_workspace = output_workspace
+            
             if self.PIPE_CONDUITS in geometry_elements and parameters[9].valueAsText:
-                output_fc = parameters[9].valueAsText
-                messages.addMessage("Extracting Pipe Conduits...")
-                data, geoms = self._get_pipe_conduits_direct(hdf_file, sr)
-                if data:
-                    # Get dynamic fields from the data
-                    fields = get_dynamic_fields_from_data(data)
-                    write_features_to_fc(output_fc, sr, "POLYLINE", fields, data, geoms, messages)
+                # Check cache first
+                if not self._hdf_cache.get('has_pipe_conduits', False):
+                    messages.addMessage("No pipe conduits found in the HDF file.")
                 else:
-                    messages.addWarning("No pipe conduits found in the HDF file.")
+                    output_fc = parameters[9].valueAsText
+                    # Update output path if using geodatabase
+                    if pipe_workspace:
+                        fc_name = "PipeConduits"
+                        output_fc = os.path.join(pipe_workspace, fc_name)
+                        parameters[9].value = output_fc
+                    
+                    messages.addMessage("Extracting Pipe Conduits...")
+                    data, geoms = self._get_pipe_conduits_direct(hdf_file, sr)
+                    if data:
+                        # Get dynamic fields from the data
+                        fields = get_dynamic_fields_from_data(data)
+                        write_features_to_fc(output_fc, sr, "POLYLINE", fields, data, geoms, messages)
+                        if pipe_workspace:
+                            add_feature_class_metadata(output_fc, "Pipe conduits (storm/sewer networks)", hdf_path)
+                    else:
+                        messages.addMessage("No pipe conduits data extracted.")
             
             if self.PIPE_NODES in geometry_elements and parameters[10].valueAsText:
-                output_fc = parameters[10].valueAsText
-                messages.addMessage("Extracting Pipe Nodes...")
-                data, geoms = self._get_pipe_nodes_direct(hdf_file, sr)
-                if data:
-                    # Get dynamic fields from the data
-                    fields = get_dynamic_fields_from_data(data)
-                    write_features_to_fc(output_fc, sr, "POINT", fields, data, geoms, messages)
+                # Check cache first
+                if not self._hdf_cache.get('has_pipe_nodes', False):
+                    messages.addMessage("No pipe nodes found in the HDF file.")
                 else:
-                    messages.addWarning("No pipe nodes found in the HDF file.")
+                    output_fc = parameters[10].valueAsText
+                    # Update output path if using geodatabase
+                    if pipe_workspace:
+                        fc_name = "PipeNodes"
+                        output_fc = os.path.join(pipe_workspace, fc_name)
+                        parameters[10].value = output_fc
+                    
+                    messages.addMessage("Extracting Pipe Nodes...")
+                    data, geoms = self._get_pipe_nodes_direct(hdf_file, sr)
+                    if data:
+                        # Get dynamic fields from the data
+                        fields = get_dynamic_fields_from_data(data)
+                        write_features_to_fc(output_fc, sr, "POINT", fields, data, geoms, messages)
+                        if pipe_workspace:
+                            add_feature_class_metadata(output_fc, "Pipe junction nodes", hdf_path)
+                    else:
+                        messages.addMessage("No pipe nodes data extracted.")
             
             if self.PIPE_NETWORKS in geometry_elements and parameters[11].valueAsText:
+                # Check cache first - pipe networks might not have a specific cache flag
                 output_fc = parameters[11].valueAsText
+                # Update output path if using geodatabase
+                if pipe_workspace:
+                    fc_name = "PipeNetworks"
+                    output_fc = os.path.join(pipe_workspace, fc_name)
+                    parameters[11].value = output_fc
+                
                 messages.addMessage("Extracting Pipe Networks...")
                 data, geoms = self._get_pipe_networks_direct(hdf_file, sr)
                 if data:
                     # Get dynamic fields from the data
                     fields = get_dynamic_fields_from_data(data)
                     write_features_to_fc(output_fc, sr, "POLYGON", fields, data, geoms, messages)
+                    if pipe_workspace:
+                        add_feature_class_metadata(output_fc, "Pipe network elements", hdf_path)
                 else:
-                    messages.addWarning("No pipe networks found in the HDF file.")
+                    messages.addMessage("No pipe networks data extracted.")
         
         messages.addMessage("\nProcessing complete.")
         return

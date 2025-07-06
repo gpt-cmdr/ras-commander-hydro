@@ -24,8 +24,8 @@ class LoadRASTerrain(object):
         self.label = "Load HEC-RAS Terrain"
         self.description = """Loads terrain layers defined in a HEC-RAS project's .rasmap file into the current map.
         
-        IMPORTANT: This tool only loads the underlying terrain TIFFs as VRT files. It does NOT include 
-        vector terrain modifications (breaklines, high ground, etc.) made in RAS Mapper."""
+        ⚠️ IMPORTANT REMINDER: The loaded terrain layers are base VRT files only. Any vector terrain 
+        modifications (breaklines, high ground, etc.) made in RAS Mapper are NOT included in these layers."""
         self.canRunInBackground = False
         self._terrain_cache = {}
 
@@ -72,20 +72,6 @@ class LoadRASTerrain(object):
     
     def updateMessages(self, parameters):
         """Modify the messages created by internal parameter validation."""
-        if parameters[0].value:
-            # Add a warning about VRT limitations
-            parameters[0].setWarningMessage(
-                "Note: This tool loads base terrain VRT files only. Vector terrain modifications "
-                "(breaklines, high ground, etc.) made in RAS Mapper will NOT be included."
-            )
-        
-        # Add additional warning if terrains are selected
-        if parameters[2].value or parameters[1].value:
-            if not parameters[0].hasWarning():
-                parameters[0].setWarningMessage(
-                    "Note: This tool loads base terrain VRT files only. Vector terrain modifications "
-                    "(breaklines, high ground, etc.) made in RAS Mapper will NOT be included."
-                )
         return
 
     def isLicensed(self):
@@ -212,14 +198,6 @@ class LoadRASTerrain(object):
                 messages.addWarningMessage(f"Associated VRT file not found for terrain '{terrain_name}'. Expected at: {vrt_path}")
         
         messages.addMessage(f"\nProcessing complete. Added {layers_added} terrain layer(s).")
-        
-        # Add reminder about VRT limitations
-        if layers_added > 0:
-            messages.addWarningMessage(
-                "\nReminder: The loaded terrain layers are base VRT files only. "
-                "Any vector terrain modifications (breaklines, high ground, etc.) made in RAS Mapper "
-                "are NOT included in these layers."
-            )
         return
     
     def getHelp(self, tool_name):

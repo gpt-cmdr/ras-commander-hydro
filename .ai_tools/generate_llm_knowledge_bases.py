@@ -53,12 +53,12 @@ import json
 
 # Configuration
 OMIT_FOLDERS = [
-    ".git", ".gemini", ".claude", "ArcHydro Default Layers", "Images", "Bald Eagle Creek", "__pycache__", ".git", ".github", "tests", "docs", "library_assistant", "__pycache__", ".conda", "workspace"
+    ".ai_tools", ".git", ".gemini", ".claude", "ArcHydro Default Layers", "Images", "Bald Eagle Creek", "__pycache__", ".git", ".github", "tests", "docs", "library_assistant", "__pycache__", ".conda", "workspace"
     "build", "dist", "ras_commander.egg-info", "venv", "ras_commander.egg-info", "log_folder", "logs",
     "example_projects", "llm_knowledge_bases", "misc", "ai_tools", "FEMA_BLE_Models", "hdf_example_data", "ras_example_categories", "html", "data", "apidocs", "build", "dist", "ras_commander.egg-info", "venv", "log_folder", "logs",
 ]
 OMIT_FILES = [
-    ".hdf", ".pyc", ".pyo", ".pyd", ".dll", ".so", ".dylib", ".exe",
+    ".lyrx", ".png",".hdf", ".pyc", ".pyo", ".pyd", ".dll", ".so", ".dylib", ".exe",
     ".bat", ".sh", ".log", ".tmp", ".bak", ".swp",
     ".DS_Store", "Thumbs.db", "example_projects.zip",
     "Example_Projects_6_6.zip", "example_projects.ipynb", "11_Using_RasExamples.ipynb", 

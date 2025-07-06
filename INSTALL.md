@@ -82,10 +82,35 @@ If you encounter issues:
 
 ## Uninstallation
 
-To remove the toolbox:
+To remove the Arc Hydro RAS Commander toolbox, you have several options:
+
+### Method 1: Using the Uninstall Batch File (Easiest)
+
+1. Double-click `uninstall_toolbox_as_admin.bat`
+2. Click "Yes" when Windows asks for administrator privileges
+3. Confirm the uninstallation when prompted
+
+### Method 2: Using PowerShell Directly
+
+1. Right-click on `uninstall_toolbox.ps1`
+2. Select "Run with PowerShell"
+3. If prompted for administrator privileges, click "Yes"
+
+OR
+
+1. Open PowerShell as Administrator
+2. Navigate to the repository directory
+3. Run: `.\uninstall_toolbox.ps1`
+
+### Method 3: Manual Uninstallation
+
+To manually remove the toolbox:
 
 1. Delete the following:
    - Directory: `C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts\ras_commander`
    - File: `C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\toolboxes\RAS Commander.pyt`
+   - File: `C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\toolboxes\RAS Commander.pyt.xml`
+   - Directory: `C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Templates\Layers\archydro\ras-commander`
+   - Directory: `C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Data\archydro\Ras2DTemplate.gdb`
 
-2. (Optional) Remove any layer templates, images, or geodatabase templates that were installed
+Note: The uninstaller will properly handle both regular installations and symlinked (development mode) installations.

@@ -29,12 +29,16 @@ import os
 
 # Add the Scripts directory to the Python path so we can import our modules
 toolbox_dir = os.path.dirname(os.path.abspath(__file__))
-scripts_dir = os.path.join(os.path.dirname(toolbox_dir), 'Scripts')
+scripts_dir = os.path.join(os.path.dirname(toolbox_dir), 'Scripts', 'archydro')
 if scripts_dir not in sys.path:
     sys.path.insert(0, scripts_dir)
 
 # Import the tool classes from our modules
-from ras_commander import LoadRASTerrain, LoadHECRAS2DGeometry, LoadHECRAS2DResults, LoadHECRAS1DGeometry
+from rc_load_ras_terrain import LoadRASTerrain
+from rc_load_hecras_2d_geometry import LoadHECRAS2DGeometry
+from rc_load_hecras_2d_results import LoadHECRAS2DResults
+from rc_load_hecras_1d_geometry import LoadHECRAS1DGeometry
+from rc_organize_ras_project import OrganizeRASProject
 
 
 class Toolbox(object):
@@ -42,8 +46,8 @@ class Toolbox(object):
     ArcGIS Python Toolbox for loading HEC-RAS 1D and 2D geometry, terrain, and results layers.
     """
     def __init__(self):
-        self.label = "RAS Commander Tools"
+        self.label = "Arc Hydro RAS-Commander Tools"
         self.alias = "RASCommander"
         self.description = "Tools for loading HEC-RAS 1D and 2D geometry, terrain, and results from HDF5 files. Sponsored by CLB Engineering (https://clbengineering.com/)."
         # List the tool classes
-        self.tools = [LoadHECRAS1DGeometry, LoadHECRAS2DGeometry, LoadHECRAS2DResults, LoadRASTerrain]
+        self.tools = [LoadHECRAS1DGeometry, LoadHECRAS2DGeometry, LoadHECRAS2DResults, LoadRASTerrain, OrganizeRASProject]
