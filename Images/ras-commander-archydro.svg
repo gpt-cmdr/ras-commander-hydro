@@ -19,7 +19,7 @@
   <rect width="450" height="300" fill="url(#circuit-pattern)" opacity="0.2" />
   
   <!-- Main title at the top -->
-  <text x="225" y="45" font-family="Arial, sans-serif" font-size="36" font-weight="bold" text-anchor="middle" fill="#8EE4AF">RAS COMMANDER</text>
+  <text x="225" y="45" font-family="Arial, sans-serif" font-size="36" font-weight="bold" text-anchor="middle" fill="#EDF5E1">RAS COMMANDER</text>
   
   <!-- Central circular emblem -->
   <circle cx="225" cy="150" r="100" fill="#05386B" stroke="#5CDB95" stroke-width="2" />
@@ -58,7 +58,7 @@
   </g>
   
   <!-- Subtitle text inside the horizontal band -->
-  <text x="225" y="206" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#8EE4AF">ARC HYDRO TOOLS</text>
+  <text x="225" y="206" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#EDF5E1">ARC HYDRO TOOLS</text>
   <text x="225" y="226" font-family="Arial, sans-serif" font-size="16" font-weight="normal" text-anchor="middle" fill="#EDF5E1">HEC-RAS 6.x Data for ArcGIS Pro</text>
   
   <!-- Corner accents -->

@@ -55,7 +55,7 @@ import json
 OMIT_FOLDERS = [
     ".ai_tools", ".git", ".gemini", ".claude", "ArcHydro Default Layers", "Images", "Bald Eagle Creek", "__pycache__", ".git", ".github", "tests", "docs", "library_assistant", "__pycache__", ".conda", "workspace"
     "build", "dist", "ras_commander.egg-info", "venv", "ras_commander.egg-info", "log_folder", "logs",
-    "example_projects", "llm_knowledge_bases", "misc", "ai_tools", "FEMA_BLE_Models", "hdf_example_data", "ras_example_categories", "html", "data", "apidocs", "build", "dist", "ras_commander.egg-info", "venv", "log_folder", "logs",
+    "example_projects", "llm_knowledge_bases", "misc", "ai_tools", "FEMA_BLE_Models", "hdf_example_data", "ras_example_categories", "data", "apidocs", "build", "dist", "ras_commander.egg-info", "venv", "log_folder", "logs",
 ]
 OMIT_FILES = [
     ".lyrx", ".png",".hdf", ".pyc", ".pyo", ".pyd", ".dll", ".so", ".dylib", ".exe",
@@ -457,6 +457,22 @@ def read_file_contents(filepath, for_examples=False):
             else:
                 # For other summaries, truncate outputs
                 return process_notebook_content(filepath)
+        
+        # For XML files, remove binary image data and <Binary><Thumbnail><Data ...>...</Data></Thumbnail></Binary> blocks
+        if filepath.suffix.lower() == '.xml':
+            with open(filepath, 'r', encoding='utf-8') as infile:
+                content = infile.read()
+                # Remove binary image data between <Enclosure> tags
+                content = re.sub(r'<Enclosure[^>]*>.*?</Enclosure>', '', content, flags=re.DOTALL)
+                # Remove <Binary><Thumbnail><Data ...>...</Data></Thumbnail></Binary> blocks
+                content = re.sub(
+                    r'<Binary>\s*<Thumbnail>\s*<Data[^>]*>.*?</Data>\s*</Thumbnail>\s*</Binary>',
+                    '',
+                    content,
+                    flags=re.DOTALL | re.IGNORECASE
+                )
+                print(f"Reading and cleaning XML content of file: {filepath}")
+                return content
         
         # Regular file reading for other files
         with open(filepath, 'r', encoding='utf-8') as infile:
