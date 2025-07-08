@@ -35,6 +35,7 @@ class LoadHECRAS2DGeometry(object):
     Loads 2D geometry elements from a HEC-RAS HDF file.
     """
     def __init__(self):
+        # Core properties
         self.label = "Load HEC-RAS 2D Geometry Layers"
         self.description = """Extracts 2D geometry elements from a HEC-RAS HDF file including mesh elements, breaklines, boundary conditions, and pipe networks.
         
@@ -51,7 +52,32 @@ class LoadHECRAS2DGeometry(object):
         • Pipe Nodes - Junction points in pipe networks (if present)
         
         Note: Mesh cell polygon creation can be time-consuming for large meshes (>100,000 cells)."""
+        
+        # Extended metadata properties
+        self.summary = "Extract 2D mesh geometry and pipe networks from HEC-RAS HDF files"
+        self.usage = """Select a HEC-RAS geometry or plan HDF file and choose which 2D geometry elements to extract.
+        
+        Steps:
+        1. Browse to a HEC-RAS geometry (g*.hdf) or plan (p*.hdf) file
+        2. Select which 2D geometry elements to extract
+        3. Specify output locations for each selected element
+        4. Optionally create an organized geodatabase
+        
+        Performance considerations:
+        • Mesh polygon creation can be slow for meshes > 100,000 cells
+        • Consider extracting only cell centers/faces for large meshes
+        • Use geodatabase output for better performance with large datasets"""
+        
+        # Tool behavior
         self.canRunInBackground = False
+        self.category = "HEC-RAS Data Import"
+        
+        # Documentation and credits
+        self.tags = ["HEC-RAS", "2D Geometry", "Mesh", "Breaklines", "Boundary Conditions", 
+                     "Pipe Networks", "Storm Sewer", "Arc Hydro"]
+        self.credits = "CLB Engineering Corporation"
+        self.author = "CLB Engineering Corporation"
+        self.version = "1.0.0"
         
         # Geometry elements
         self.BREAKLINES = "2D Breaklines"
@@ -112,53 +138,144 @@ class LoadHECRAS2DGeometry(object):
         
         # Configure HDF file filter
         params[0].filter.list = ["hdf", "g*.hdf", "p*.hdf"]
-        params[0].description = "Select a HEC-RAS geometry file (g*.hdf) or plan file (p*.hdf) containing 2D geometry data."
+        params[0].description = """Select a HEC-RAS geometry file (g*.hdf) or plan file (p*.hdf) containing 2D geometry data.
         
-        params[1].description = """Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files. 
-        The tool will first attempt to read the CRS from the HDF file or associated .prj files."""
+        The tool will automatically detect available 2D flow areas and pipe networks in the file.
+        
+        Supported file types:
+        • Geometry files (g01.hdf, g02.hdf, etc.)
+        • Plan files with geometry (p01.hdf, p02.hdf, etc.)"""
+        params[0].category = "Input Data"
+        
+        params[1].description = """Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files.
+        
+        The tool will first attempt to read the CRS from:
+        1. The HDF file metadata
+        2. Associated .prj files in the project directory
+        3. The RAS Mapper projection file
+        
+        Only provide this parameter if automatic detection fails."""
+        params[1].category = "Input Data"
         
         # Set filters for multi-value parameters
         params[2].filter.type = "ValueList"
         params[2].filter.list = geometry_elements
         params[2].value = [self.PERIMETERS]  # Default selection
-        params[2].description = """Select one or more geometry elements to extract from the HDF file. 
-        Each selected element will create a separate output feature class."""
+        params[2].description = """Select one or more geometry elements to extract from the HDF file.
+        
+        Mesh Elements:
+        • 2D Breaklines - Enforce mesh refinement along important features
+        • 2D Boundary Condition Lines - Define inflow/outflow boundaries
+        • Mesh Area Perimeters - 2D flow area boundaries
+        • Mesh Cell Centers - Point at center of each computational cell
+        • Mesh Cell Faces - Lines representing cell edges
+        • Mesh Cells (Polygons) - Full polygon cells (slow for large meshes)
+        
+        Pipe Networks:
+        • Pipe Conduits - Storm/sewer pipe segments
+        • Pipe Nodes - Manholes and junctions
+        • Pipe Networks - Complete network elements
+        
+        Each selected element creates a separate output feature class."""
+        params[2].category = "Geometry Selection"
         
         # Set default output paths and descriptions
         params[3].value = r"memory\Breaklines"
-        params[3].description = "Output feature class for 2D breaklines with cell spacing attributes."
+        params[3].description = """Output feature class for 2D breaklines.
+        
+        Attributes include:
+        • Name and type
+        • Cell spacing along breakline
+        • 2D flow area association"""
         
         params[4].value = r"memory\BoundaryConditionLines"
-        params[4].description = "Output feature class for 2D boundary condition lines."
+        params[4].description = """Output feature class for 2D boundary condition lines.
+        
+        Attributes include:
+        • BC type (Flow, Stage, Normal Depth, etc.)
+        • BC name
+        • 2D flow area association"""
         
         params[5].value = r"memory\MeshPerimeters"
-        params[5].description = "Output feature class for 2D flow area perimeter polygons."
+        params[5].description = """Output feature class for 2D flow area perimeter polygons.
+        
+        Attributes include:
+        • 2D area name
+        • Cell count
+        • Minimum cell size
+        • Area in acres"""
         
         params[6].value = r"memory\MeshCellCenters"
-        params[6].description = "Output feature class for mesh cell center points."
+        params[6].description = """Output feature class for mesh cell center points.
+        
+        Attributes include:
+        • Cell ID
+        • 2D flow area name
+        • Cell area
+        • Elevation (if available)"""
         
         params[7].value = r"memory\MeshCellFaces"
-        params[7].description = "Output feature class for mesh cell face polylines."
+        params[7].description = """Output feature class for mesh cell face polylines.
+        
+        Represents the edges between computational cells.
+        Useful for understanding mesh connectivity."""
         
         params[8].value = r"memory\MeshCellPolygons"
-        params[8].description = "Output feature class for mesh cell polygons. Note: Can be slow for large meshes."
+        params[8].description = """Output feature class for mesh cell polygons.
+        
+        WARNING: Polygon creation can be very slow for large meshes (>100,000 cells).
+        Consider using cell centers and faces for large models.
+        
+        Attributes include:
+        • Cell ID
+        • Cell area
+        • 2D flow area name"""
         
         params[9].value = r"memory\PipeConduits"
-        params[9].description = "Output feature class for pipe conduits (storm/sewer networks)."
+        params[9].description = """Output feature class for pipe conduits.
+        
+        Storm/sewer pipe segments with attributes:
+        • Pipe name and material
+        • Diameter/dimensions
+        • Upstream/downstream nodes
+        • Length and slope"""
         
         params[10].value = r"memory\PipeNodes"
-        params[10].description = "Output feature class for pipe junction nodes."
+        params[10].description = """Output feature class for pipe junction nodes.
+        
+        Manholes and junctions with attributes:
+        • Node name
+        • Rim elevation
+        • Invert elevation
+        • Node type"""
         
         params[11].value = r"memory\PipeNetworks"
-        params[11].description = "Output feature class for pipe network elements."
+        params[11].description = """Output feature class for complete pipe network elements.
+        
+        Combined pipe network geometry including both conduits and nodes."""
         
         # Geodatabase parameters
-        params[12].description = """Specify a geodatabase to organize all output feature classes. 
-        If provided, outputs will be created in this geodatabase instead of the default locations."""
+        params[12].description = """Specify a geodatabase to organize all output feature classes.
+        
+        If provided:
+        • All outputs will be created in feature datasets within this geodatabase
+        • Feature datasets will be organized by geometry type (Mesh, Pipes, etc.)
+        • Automatic naming conventions will be applied
+        
+        Leave empty to use default output locations."""
+        params[12].category = "Output Organization"
         
         params[13].value = True  # Default to creating new geodatabase
-        params[13].description = """Create a new geodatabase based on the HDF file name. 
-        The geodatabase will be named using the pattern: ProjectName.pXX.gdb"""
+        params[13].description = """Create a new geodatabase based on the HDF file name.
+        
+        When enabled:
+        • Creates geodatabase named: ProjectName.pXX.gdb
+        • Organizes outputs in feature datasets by type
+        • Maintains HEC-RAS project structure
+        • Optimizes performance for large datasets
+        
+        Recommended for organizing complete 2D models."""
+        params[13].category = "Output Organization"
         
         return params
 
@@ -1133,10 +1250,110 @@ class LoadHECRAS2DGeometry(object):
         messages.addMessage("\nProcessing complete.")
         return
     
-    def getHelp(self, tool_name):
-        """Return help documentation URL for the tool."""
-        help_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-                                "Doc", "RASCommander_Help.html")
+    def getHelp(self, tool_name=None):
+        """Return help documentation for the tool.
+        
+        This method is called when the user clicks the help button.
+        It can return:
+        - A URL (starting with http:// or https://)
+        - A local file path (starting with file:///)
+        - HTML content directly (for embedded help)
+        """
+        # Try local help file first
+        help_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
+            "Doc", "RASCommander_Help.html"
+        )
+        
         if os.path.exists(help_file):
-            return f"file:///{help_file.replace(os.sep, '/')}#load-hec-ras-2d-geometry-layers"
-        return None
+            # Return local help file
+            anchor = "#load-hec-ras-2d-geometry-layers"
+            return f"file:///{help_file.replace(os.sep, '/')}{anchor}"
+        else:
+            # Fallback to online documentation
+            return "https://github.com/gpt-cmdr/ras-commander-hydro#load-hec-ras-2d-geometry-layers"
+    
+    def getCodeSamples(self):
+        """Provide code samples for using this tool programmatically."""
+        return [
+            {
+                "title": "Basic 2D Mesh Import",
+                "description": "Import mesh cell centers and perimeters",
+                "code": """import arcpy
+
+# Set input parameters
+hdf_file = r"C:\\RAS_Projects\\MyProject\\MyProject.g01.hdf"
+geometry_elements = ["Mesh Cell Centers", "Mesh Area Perimeters"]
+
+# Run the tool
+result = arcpy.RASCommander.LoadHECRAS2DGeometry(
+    input_hdf=hdf_file,
+    geometry_elements=geometry_elements,
+    output_cell_points=r"memory\\MeshCenters",
+    output_perimeters=r"memory\\MeshPerimeters"
+)
+
+print("2D geometry loaded successfully!")
+print(f"Cell centers: {result[0]}")
+print(f"Perimeters: {result[1]}")"""
+            },
+            {
+                "title": "Complete 2D Mesh Extract",
+                "description": "Extract full mesh geometry including polygons",
+                "code": """import arcpy
+import os
+
+# Input HDF file
+hdf_file = r"C:\\RAS_Projects\\MyProject\\MyProject.p01.hdf"
+
+# Create geodatabase for outputs
+gdb_path = os.path.join(os.path.dirname(hdf_file), "MyProject.p01.gdb")
+
+# Extract all 2D geometry elements (including slow polygon creation)
+arcpy.RASCommander.LoadHECRAS2DGeometry(
+    input_hdf=hdf_file,
+    geometry_elements=["2D Breaklines", "2D Boundary Condition Lines", 
+                      "Mesh Area Perimeters", "Mesh Cell Centers", 
+                      "Mesh Cells (Polygons)"],
+    output_gdb=gdb_path,
+    create_gdb=True
+)
+
+print(f"2D geometry organized in: {gdb_path}")"""
+            },
+            {
+                "title": "Pipe Network Extraction",
+                "description": "Extract storm/sewer pipe network components",
+                "code": """import arcpy
+
+# Extract pipe network elements
+arcpy.RASCommander.LoadHECRAS2DGeometry(
+    input_hdf=r"C:\\RAS_Projects\\Urban\\Urban.g01.hdf",
+    geometry_elements=["Pipe Networks"],
+    output_pipe_conduits=r"memory\\PipeConduits",
+    output_pipe_nodes=r"memory\\PipeNodes"
+)
+
+# Query pipe statistics
+with arcpy.da.SearchCursor("memory\\PipeConduits", ["Shape_Length", "Diameter"]) as cursor:
+    total_length = 0
+    for row in cursor:
+        total_length += row[0]
+    print(f"Total pipe length: {total_length:.2f} feet")"""
+            },
+            {
+                "title": "Performance Optimized Extract",
+                "description": "Extract mesh for large models (>100k cells)",
+                "code": """import arcpy
+
+# For large meshes, avoid polygon creation
+arcpy.RASCommander.LoadHECRAS2DGeometry(
+    input_hdf=r"C:\\RAS_Projects\\LargeModel.g01.hdf",
+    geometry_elements=["Mesh Cell Centers", "Mesh Cell Faces", "Mesh Area Perimeters"],
+    create_gdb=True
+)
+
+# Cell centers and faces provide mesh structure without expensive polygon creation
+print("Large mesh geometry extracted efficiently")"""
+            }
+        ]

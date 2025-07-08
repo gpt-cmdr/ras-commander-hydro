@@ -34,6 +34,7 @@ class OrganizeRASProject(object):
     Organizes all HEC-RAS data into a structured geodatabase.
     """
     def __init__(self):
+        # Core properties
         self.label = "Organize HEC-RAS Project"
         self.description = """Extracts all geometry and results from HEC-RAS files into an organized geodatabase.
         
@@ -54,7 +55,43 @@ class OrganizeRASProject(object):
         • Results - Maximum WSE, velocity, and other results (if available)
         
         Note: This operation may take several minutes for large models."""
+        
+        # Extended metadata properties
+        self.summary = "Comprehensive HEC-RAS project organization into geodatabase"
+        self.usage = """Select a HEC-RAS project directory or individual HDF file to organize all data.
+        
+        Steps:
+        1. Choose input (project folder or single HDF file)
+        2. Specify output geodatabase location
+        3. Select which data types to include
+        4. Set processing options
+        5. Tool extracts and organizes all available data
+        
+        Input options:
+        • Project directory - Processes all HDF files found
+        • Single HDF file - Processes just that file
+        
+        Organization structure:
+        • Feature datasets by plan (Plan01, Plan02, etc.)
+        • Within each plan: 1D_Geometry, 2D_Geometry, Results
+        • Automatic naming and metadata
+        • Preserves all HEC-RAS attributes
+        
+        Performance tips:
+        • Disable mesh polygons for large models (>100k cells)
+        • Use local drives for better performance
+        • Close other applications during processing"""
+        
+        # Tool behavior
         self.canRunInBackground = False
+        self.category = "HEC-RAS Project Management"
+        
+        # Documentation and credits
+        self.tags = ["HEC-RAS", "Project Organization", "Geodatabase", "Batch Processing", 
+                     "1D Geometry", "2D Geometry", "Results", "Pipe Networks", "Arc Hydro"]
+        self.credits = "CLB Engineering Corporation"
+        self.author = "CLB Engineering Corporation"
+        self.version = "1.0.0"
 
     def getParameterInfo(self):
         params = [
@@ -71,26 +108,83 @@ class OrganizeRASProject(object):
             arcpy.Parameter(displayName="Override CRS (Optional)", name="override_crs", datatype="GPSpatialReference", 
                           parameterType="Optional", direction="Input"),
             
+            # Data type selection
+            arcpy.Parameter(displayName="Include 1D Geometry", name="include_1d_geometry", datatype="GPBoolean", 
+                          parameterType="Optional", direction="Input"),
+            arcpy.Parameter(displayName="Include 2D Geometry", name="include_2d_geometry", datatype="GPBoolean", 
+                          parameterType="Optional", direction="Input"),
+            arcpy.Parameter(displayName="Include 2D Results Summary Layers", name="include_2d_results", datatype="GPBoolean", 
+                          parameterType="Optional", direction="Input"),
+            
             # Options
             arcpy.Parameter(displayName="Include Mesh Cell Polygons", name="include_cell_polygons", datatype="GPBoolean", 
                           parameterType="Optional", direction="Input"),
-            arcpy.Parameter(displayName="Extract All Available Results", name="extract_all_results", datatype="GPBoolean", 
-                          parameterType="Optional", direction="Input")
         ]
         
         # Configure parameters
         params[0].description = """Select a HEC-RAS project directory to process all plan files (p*.hdf), 
         or select a single HDF file to process."""
+        params[0].category = "Input Data"
         
         params[1].description = "Output geodatabase that will contain all extracted data in an organized structure."
+        params[1].category = "Output"
         
         params[2].description = """Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files."""
+        params[2].category = "Input Data"
         
-        params[3].value = False
-        params[3].description = "Include mesh cell polygons (can be time-consuming for large meshes)."
+        # Data type selection parameters
+        params[3].value = True
+        params[3].description = """Include all 1D geometry elements in the output.
+        
+        When enabled, extracts:
+        • Cross sections with station-elevation data
+        • River centerlines
+        • Bank lines
+        • Edge lines
+        • 1D structures (bridges, culverts, weirs)
+        
+        Disable if you only need 2D data."""
+        params[3].category = "Data Selection"
         
         params[4].value = True
-        params[4].description = "Extract all available result variables (WSE, velocity, depth, etc.)."
+        params[4].description = """Include all 2D geometry elements in the output.
+        
+        When enabled, extracts:
+        • 2D breaklines
+        • Boundary condition lines
+        • Mesh area perimeters
+        • Mesh cell centers
+        • Mesh cell faces
+        • Mesh cell polygons (if enabled)
+        • Pipe networks (conduits, nodes, and network cells)
+        
+        Disable if you only need 1D data."""
+        params[4].category = "Data Selection"
+        
+        params[5].value = True
+        params[5].description = """Include 2D results summary layers in the output.
+        
+        When enabled, extracts:
+        • Maximum water surface elevation at cell centers
+        • Maximum velocity at cell faces
+        • Time of maximum occurrence
+        
+        Disable if you only need geometry without results."""
+        params[5].category = "Data Selection"
+        
+        params[6].value = False
+        params[6].description = """Include full polygon representation of mesh cells.
+        
+        WARNING: This can significantly increase processing time for large meshes.
+        
+        Performance guidelines:
+        • < 10,000 cells: Safe to enable
+        • 10,000 - 50,000 cells: May take several minutes
+        • 50,000 - 100,000 cells: May take 10-30 minutes
+        • > 100,000 cells: Not recommended (use cell centers instead)
+        
+        When disabled, only cell centers and faces are extracted."""
+        params[6].category = "Processing Options"
         
         return params
 
@@ -114,15 +208,28 @@ class OrganizeRASProject(object):
                 default_gdb = os.path.join(os.path.dirname(input_path), f"{input_name}_Organized.gdb")
             
             parameters[1].value = default_gdb
+        
+        # Enable/disable mesh polygon option based on 2D geometry selection
+        if parameters[4].value == False:  # include_2d_geometry
+            parameters[6].enabled = False  # include_cell_polygons
+            parameters[6].value = False
+        else:
+            parameters[6].enabled = True
+        
         return
     
     def updateMessages(self, parameters):
         """Modify messages created by internal validation."""
         # Warn about mesh polygons
-        if parameters[3].value:
-            parameters[3].setWarningMessage(
+        if parameters[6].value:
+            parameters[6].setWarningMessage(
                 "Creating cell polygons can be time-consuming for large meshes (>100,000 cells)."
             )
+        
+        # Warn if no data types selected
+        if not any([parameters[3].value, parameters[4].value, parameters[5].value]):
+            parameters[3].setErrorMessage("At least one data type must be selected.")
+        
         return
 
     def _check_hdf_contents(self, hdf_file):
@@ -134,6 +241,7 @@ class OrganizeRASProject(object):
             'has_results': False,
             '1d_elements': [],
             '2d_elements': [],
+            'pipe_elements': [],
             'result_profiles': []
         }
         
@@ -146,9 +254,12 @@ class OrganizeRASProject(object):
         if "Geometry/River Centerlines" in hdf_file:
             contents['has_1d'] = True
             contents['1d_elements'].append("River Centerlines")
-        if "Geometry/Bank Lines" in hdf_file:
+        if "Geometry/River Bank Lines" in hdf_file:
             contents['has_1d'] = True
             contents['1d_elements'].append("Bank Lines")
+        if "Geometry/River Edge Lines" in hdf_file:
+            contents['has_1d'] = True
+            contents['1d_elements'].append("Edge Lines")
         if "Geometry/Structures" in hdf_file:
             # Verify that it has actual data
             if "Geometry/Structures/Attributes" in hdf_file:
@@ -162,24 +273,43 @@ class OrganizeRASProject(object):
             contents['2d_elements'].append("Mesh Cell Centers")
             contents['2d_elements'].append("Mesh Cell Faces")
         if "Geometry/2D Flow Area Break Lines" in hdf_file:
+            contents['has_2d'] = True
             contents['2d_elements'].append("2D Breaklines")
         if "Geometry/Boundary Condition Lines" in hdf_file:
+            contents['has_2d'] = True
             contents['2d_elements'].append("2D Boundary Condition Lines")
         
-        # Check for pipe networks
+        # Check for pipe networks - these are part of 2D geometry
         if "Geometry/Pipe Conduits" in hdf_file:
             contents['has_pipes'] = True
+            contents['has_2d'] = True
+            contents['pipe_elements'].append("Pipe Conduits")
+            contents['2d_elements'].append("Pipe Conduits")
+        if "Geometry/Pipe Nodes" in hdf_file:
+            contents['has_pipes'] = True
+            contents['has_2d'] = True
+            contents['pipe_elements'].append("Pipe Nodes")
+            contents['2d_elements'].append("Pipe Nodes")
+        if "Geometry/Pipe Networks" in hdf_file:
+            contents['has_pipes'] = True
+            contents['has_2d'] = True
+            contents['pipe_elements'].append("Pipe Networks")
+            contents['2d_elements'].append("Pipe Networks")
         
         # Check for results
-        if "Results/Unsteady/Output/Output Blocks/Base Output/Unsteady Time Series/2D Flow Areas" in hdf_file:
+        if "Results/Unsteady/Output/Output Blocks/Base Output/Summary Output/2D Flow Areas" in hdf_file:
             contents['has_results'] = True
             # Get available output profiles
-            results_path = "Results/Unsteady/Output/Output Blocks/Base Output/Unsteady Time Series/2D Flow Areas"
-            for flow_area in hdf_file[results_path]:
-                if "Maximum Values" in hdf_file[f"{results_path}/{flow_area}"]:
-                    max_vals = hdf_file[f"{results_path}/{flow_area}/Maximum Values"]
-                    contents['result_profiles'].extend(list(max_vals.keys()))
+            results_path = "Results/Unsteady/Output/Output Blocks/Base Output/Summary Output/2D Flow Areas"
+            try:
+                for flow_area in hdf_file[results_path]:
+                    if "Maximum Water Surface" in hdf_file[f"{results_path}/{flow_area}"]:
+                        contents['result_profiles'].append("Maximum Water Surface")
+                    if "Maximum Face Velocity" in hdf_file[f"{results_path}/{flow_area}"]:
+                        contents['result_profiles'].append("Maximum Face Velocity")
                     break
+            except:
+                pass
         
         return contents
 
@@ -324,8 +454,10 @@ class OrganizeRASProject(object):
         input_path = parameters[0].valueAsText
         output_gdb = parameters[1].valueAsText
         override_crs = parameters[2].value
-        include_cell_polygons = parameters[3].value
-        extract_all_results = parameters[4].value
+        include_1d = parameters[3].value
+        include_2d = parameters[4].value
+        include_results = parameters[5].value
+        include_cell_polygons = parameters[6].value
         
         # Determine if input is directory or file
         hdf_files = []
@@ -365,7 +497,8 @@ class OrganizeRASProject(object):
             messages.addMessage(f"{'='*60}")
             
             self._process_single_hdf(hdf_path, output_gdb, override_crs, 
-                                   include_cell_polygons, extract_all_results, messages)
+                                   include_1d, include_2d, include_results,
+                                   include_cell_polygons, messages)
         
         messages.addMessage(f"\n{'='*60}")
         messages.addMessage(f"Processing complete! All plans organized in:")
@@ -376,7 +509,8 @@ class OrganizeRASProject(object):
         self._load_geodatabase_to_map(output_gdb, messages)
     
     def _process_single_hdf(self, hdf_path, output_gdb, override_crs, 
-                          include_cell_polygons, extract_all_results, messages):
+                          include_1d, include_2d, include_results,
+                          include_cell_polygons, messages):
         """Process a single HDF file."""
         # Extract project and plan info
         project_name, plan_number, base_name = extract_project_and_plan_info(hdf_path)
@@ -410,7 +544,7 @@ class OrganizeRASProject(object):
         if contents['has_2d']:
             messages.addMessage(f"Found 2D geometry: {', '.join(contents['2d_elements'])}")
         if contents['has_pipes']:
-            messages.addMessage("Found pipe network data")
+            messages.addMessage(f"Found pipe network data: {', '.join(contents['pipe_elements'])}")
         if contents['has_results']:
             messages.addMessage(f"Found results data with {len(set(contents['result_profiles']))} output variables")
         
@@ -422,7 +556,7 @@ class OrganizeRASProject(object):
                 self.values = value if isinstance(value, list) else None
         
         # Process 1D Geometry
-        if contents['has_1d']:
+        if contents['has_1d'] and include_1d:
             messages.addMessage("\n--- Processing 1D Geometry ---")
             tool_1d = LoadHECRAS1DGeometry()
             
@@ -469,13 +603,13 @@ class OrganizeRASProject(object):
                 messages.addWarning("Continuing with remaining data...")
         
         # Process 2D Geometry
-        if contents['has_2d']:
+        if contents['has_2d'] and include_2d:
             messages.addMessage("\n--- Processing 2D Geometry ---")
             tool_2d = LoadHECRAS2DGeometry()
             
             # Determine which elements to load
             elements_2d = contents['2d_elements'][:]
-            if include_cell_polygons:
+            if include_cell_polygons and "Mesh Cell Centers" in elements_2d:
                 elements_2d.append("Mesh Cells (Polygons)")
             
             # Create parameters for 2D tool
@@ -517,7 +651,7 @@ class OrganizeRASProject(object):
                 messages.addWarning("Continuing with remaining data...")
         
         # Process Results
-        if contents['has_results'] and extract_all_results:
+        if contents['has_results'] and include_results:
             messages.addMessage("\n--- Processing Results ---")
             tool_results = LoadHECRAS2DResults()
             
@@ -551,10 +685,216 @@ class OrganizeRASProject(object):
         messages.addMessage(f"\nCompleted processing: {os.path.basename(hdf_path)}")
         return
     
-    def getHelp(self, tool_name):
-        """Return help documentation URL for the tool."""
-        help_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-                                "Doc", "RASCommander_Help.html")
+    def getHelp(self, tool_name=None):
+        """Return help documentation for the tool.
+        
+        This method is called when the user clicks the help button.
+        It can return:
+        - A URL (starting with http:// or https://)
+        - A local file path (starting with file:///)
+        - HTML content directly (for embedded help)
+        """
+        # Try local help file first
+        help_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
+            "Doc", "RASCommander_Help.html"
+        )
+        
         if os.path.exists(help_file):
-            return f"file:///{help_file.replace(os.sep, '/')}#organize-hec-ras-project"
-        return None
+            # Return local help file
+            anchor = "#organize-hec-ras-project"
+            return f"file:///{help_file.replace(os.sep, '/')}{anchor}"
+        else:
+            # Fallback to online documentation
+            return "https://github.com/gpt-cmdr/ras-commander-hydro#organize-hec-ras-project"
+    
+    def getCodeSamples(self):
+        """Provide code samples for using this tool programmatically."""
+        return [
+            {
+                "title": "Basic Project Organization",
+                "description": "Organize a single HEC-RAS plan file",
+                "code": """import arcpy
+import os
+
+# Set input HDF file
+hdf_file = r"C:\\RAS_Projects\\MyProject\\MyProject.p01.hdf"
+
+# Create output geodatabase path
+gdb_path = os.path.join(os.path.dirname(hdf_file), "MyProject_Organized.gdb")
+
+# Run the organization tool
+arcpy.RASCommander.OrganizeRASProject(
+    input_path=hdf_file,
+    output_gdb=gdb_path,
+    include_1d_geometry=True,
+    include_2d_geometry=True,
+    include_2d_results=True,
+    include_cell_polygons=False  # Skip polygons for performance
+)
+
+print(f"Project organized in: {gdb_path}")
+
+# List created feature datasets
+arcpy.env.workspace = gdb_path
+for fd in arcpy.ListDatasets("*", "Feature"):
+    print(f"  Feature Dataset: {fd}")
+    arcpy.env.workspace = os.path.join(gdb_path, fd)
+    for fc in arcpy.ListFeatureClasses():
+        print(f"    - {fc}")"""
+            },
+            {
+                "title": "Batch Process Multiple Projects",
+                "description": "Organize all HEC-RAS projects in a directory",
+                "code": """import arcpy
+import os
+
+# Directory containing multiple HEC-RAS projects
+projects_dir = r"C:\\RAS_Projects"
+
+# Process each project directory
+for project_name in os.listdir(projects_dir):
+    project_path = os.path.join(projects_dir, project_name)
+    
+    if os.path.isdir(project_path):
+        # Create output geodatabase
+        gdb_path = os.path.join(project_path, f"{project_name}_Organized.gdb")
+        
+        try:
+            # Organize the entire project
+            arcpy.RASCommander.OrganizeRASProject(
+                input_path=project_path,
+                output_gdb=gdb_path,
+                include_1d_geometry=True,
+                include_2d_geometry=True,
+                include_2d_results=True,
+                include_cell_polygons=False
+            )
+            print(f"Organized: {project_name}")
+        except Exception as e:
+            print(f"Failed to organize {project_name}: {str(e)}")"""
+            },
+            {
+                "title": "Performance Optimized",
+                "description": "Organize large models efficiently",
+                "code": """import arcpy
+
+# For large models, optimize performance
+arcpy.RASCommander.OrganizeRASProject(
+    input_path=r"C:\\RAS_Projects\\LargeModel",
+    output_gdb=r"C:\\RAS_Projects\\LargeModel_Fast.gdb",
+    include_1d_geometry=True,
+    include_2d_geometry=True,
+    include_2d_results=True,
+    include_cell_polygons=False  # Skip polygon creation for speed
+)
+
+# Post-processing tip: Create rasters from point data
+# This is often faster than creating polygons
+gdb = r"C:\\RAS_Projects\\LargeModel_Fast.gdb"
+wse_points = os.path.join(gdb, "Plan01", "MaxWSE_CellCenters")
+
+if arcpy.Exists(wse_points):
+    # Create WSE raster (requires Spatial Analyst)
+    arcpy.CheckOutExtension("Spatial")
+    wse_raster = arcpy.sa.Idw(wse_points, "Max_WSE")
+    wse_raster.save(os.path.join(gdb, "WSE_Raster"))"""
+            },
+            {
+                "title": "Custom CRS Override",
+                "description": "Organize with specific coordinate system",
+                "code": """import arcpy
+
+# Define custom spatial reference
+custom_sr = arcpy.SpatialReference(2227)  # NAD83 State Plane CA III
+
+# Organize with CRS override
+arcpy.RASCommander.OrganizeRASProject(
+    input_path=r"C:\\RAS_Projects\\StatePlane\\Project.p01.hdf",
+    output_gdb=r"C:\\RAS_Projects\\StatePlane_Organized.gdb",
+    override_crs=custom_sr,
+    include_1d_geometry=True,
+    include_2d_geometry=True,
+    include_2d_results=True,
+    include_cell_polygons=True
+)
+
+print("Project organized with custom coordinate system")"""
+            },
+            {
+                "title": "Results Analysis Pipeline",
+                "description": "Organize and analyze results",
+                "code": """import arcpy
+import os
+
+# Organize project
+project_dir = r"C:\\RAS_Projects\\FloodStudy"
+gdb_path = os.path.join(project_dir, "FloodStudy_Analysis.gdb")
+
+arcpy.RASCommander.OrganizeRASProject(
+    input_path=project_dir,
+    output_gdb=gdb_path,
+    include_1d_geometry=True,
+    include_2d_geometry=True,
+    include_2d_results=True,
+    include_cell_polygons=False
+)
+
+# Analyze results
+arcpy.env.workspace = gdb_path
+datasets = arcpy.ListDatasets("*", "Feature")
+
+for dataset in datasets:
+    wse_fc = os.path.join(gdb_path, dataset, "MaxWSE_CellCenters")
+    
+    if arcpy.Exists(wse_fc):
+        # Get statistics
+        stats = arcpy.Statistics_analysis(
+            wse_fc, 
+            "memory\\stats",
+            [["Max_WSE", "MAX"], ["Max_WSE", "MEAN"]],
+            "SA_Name"
+        )
+        
+        print(f"\\nStatistics for {dataset}:")
+        with arcpy.da.SearchCursor(stats, ["SA_Name", "MAX_Max_WSE", "MEAN_Max_WSE"]) as cursor:
+            for row in cursor:
+                print(f"  Area: {row[0]}")
+                print(f"    Max WSE: {row[1]:.2f}")
+                print(f"    Mean WSE: {row[2]:.2f}")"""
+            },
+            {
+                "title": "2D Only Organization",
+                "description": "Extract only 2D geometry and results",
+                "code": """import arcpy
+
+# Focus on 2D data only
+arcpy.RASCommander.OrganizeRASProject(
+    input_path=r"C:\\RAS_Projects\\2DModel",
+    output_gdb=r"C:\\RAS_Projects\\2DModel_2DOnly.gdb",
+    include_1d_geometry=False,  # Skip 1D
+    include_2d_geometry=True,   # Include 2D geometry
+    include_2d_results=True,    # Include results
+    include_cell_polygons=False
+)
+
+print("2D data extracted successfully")"""
+            },
+            {
+                "title": "Geometry Only (No Results)",
+                "description": "Extract geometry without results for faster processing",
+                "code": """import arcpy
+
+# Extract geometry only - useful for model setup review
+arcpy.RASCommander.OrganizeRASProject(
+    input_path=r"C:\\RAS_Projects\\LargeModel.p01.hdf",
+    output_gdb=r"C:\\RAS_Projects\\LargeModel_GeomOnly.gdb",
+    include_1d_geometry=True,
+    include_2d_geometry=True,
+    include_2d_results=False,  # Skip results for speed
+    include_cell_polygons=False
+)
+
+print("Geometry extracted without results")"""
+            }
+        ]

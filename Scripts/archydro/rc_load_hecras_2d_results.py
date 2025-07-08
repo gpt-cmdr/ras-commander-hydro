@@ -33,6 +33,7 @@ class LoadHECRAS2DResults(object):
     Loads 2D results summary data from a HEC-RAS HDF file.
     """
     def __init__(self):
+        # Core properties
         self.label = "Load HEC-RAS 2D Results Summary Layers"
         self.description = """Extracts 2D results summary data from a HEC-RAS HDF file including maximum water surface elevation and face velocities.
         
@@ -45,7 +46,34 @@ class LoadHECRAS2DResults(object):
         Both results types create point feature classes with attributes for the maximum value and the time when it occurred.
         
         Note: This tool requires a plan HDF file that contains results data. Geometry-only files will not work."""
+        
+        # Extended metadata properties
+        self.summary = "Extract maximum WSE and velocity results from HEC-RAS 2D simulations"
+        self.usage = """Select a HEC-RAS plan HDF file containing simulation results and choose which summary statistics to extract.
+        
+        Steps:
+        1. Browse to a HEC-RAS plan file (p*.hdf) with results
+        2. Select which results to extract (Max WSE, Max Velocity)
+        3. Specify output locations
+        4. Optionally create an organized geodatabase
+        
+        The tool extracts:
+        • Maximum values achieved during the entire simulation
+        • Time of occurrence for each maximum
+        • Cell/face identification and area information
+        
+        Use this tool for flood mapping and hazard assessment."""
+        
+        # Tool behavior
         self.canRunInBackground = False
+        self.category = "HEC-RAS Results Analysis"
+        
+        # Documentation and credits
+        self.tags = ["HEC-RAS", "2D Results", "Water Surface Elevation", "Velocity", 
+                     "Flood Mapping", "Hazard Analysis", "Arc Hydro"]
+        self.credits = "CLB Engineering Corporation"
+        self.author = "CLB Engineering Corporation"
+        self.version = "1.0.0"
         
         # Results elements
         self.MAX_WSE_POINTS = "Max WSE at Cell Centers"
@@ -101,8 +129,15 @@ class LoadHECRAS2DResults(object):
         Includes attributes for cell ID, mesh name, maximum WSE value, and time of occurrence."""
         
         params[4].value = r"memory\MaximumFaceVelocity"
-        params[4].description = """Output feature class for maximum face velocity points. 
-        Includes attributes for face ID, mesh name, maximum velocity value, and time of occurrence."""
+        params[4].description = """Output feature class for maximum face velocity points.
+        
+        Attributes include:
+        • Face ID and 2D area name
+        • Maximum velocity magnitude (ft/s or m/s)
+        • Time of maximum occurrence
+        • Face location (between cell centers)
+        
+        Use for identifying high velocity areas and erosion potential."""
         
         # Geodatabase parameters
         params[5].description = """Specify a geodatabase to organize all output feature classes. 
@@ -446,10 +481,126 @@ class LoadHECRAS2DResults(object):
         messages.addMessage("\nProcessing complete.")
         return
     
-    def getHelp(self, tool_name):
-        """Return help documentation URL for the tool."""
-        help_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-                                "Doc", "RASCommander_Help.html")
+    def getHelp(self, tool_name=None):
+        """Return help documentation for the tool.
+        
+        This method is called when the user clicks the help button.
+        It can return:
+        - A URL (starting with http:// or https://)
+        - A local file path (starting with file:///)
+        - HTML content directly (for embedded help)
+        """
+        # Try local help file first
+        help_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
+            "Doc", "RASCommander_Help.html"
+        )
+        
         if os.path.exists(help_file):
-            return f"file:///{help_file.replace(os.sep, '/')}#load-hec-ras-2d-results-summary-layers"
-        return None
+            # Return local help file
+            anchor = "#load-hec-ras-2d-results-summary-layers"
+            return f"file:///{help_file.replace(os.sep, '/')}{anchor}"
+        else:
+            # Fallback to online documentation
+            return "https://github.com/gpt-cmdr/ras-commander-hydro#load-hec-ras-2d-results-summary-layers"
+    
+    def getCodeSamples(self):
+        """Provide code samples for using this tool programmatically."""
+        return [
+            {
+                "title": "Basic Results Extraction",
+                "description": "Extract maximum WSE from simulation results",
+                "code": """import arcpy
+
+# Set input parameters
+hdf_file = r"C:\\RAS_Projects\\MyProject\\MyProject.p01.hdf"
+results_elements = ["Max WSE at Cell Centers"]
+
+# Run the tool
+result = arcpy.RASCommander.LoadHECRAS2DResults(
+    input_hdf=hdf_file,
+    results_elements=results_elements,
+    output_max_wse=r"memory\\MaxWSE"
+)
+
+print("Maximum WSE extracted successfully!")
+
+# Query statistics
+with arcpy.da.SearchCursor(result[0], ["Max_WSE", "Time_of_Max"]) as cursor:
+    max_wse = max(row[0] for row in cursor)
+    print(f"Peak WSE in model: {max_wse:.2f} feet")"""
+            },
+            {
+                "title": "Complete Results Analysis",
+                "description": "Extract both WSE and velocity results",
+                "code": """import arcpy
+import os
+
+# Input plan file with results
+hdf_file = r"C:\\RAS_Projects\\MyProject\\MyProject.p01.hdf"
+
+# Create geodatabase for results
+gdb_path = os.path.join(os.path.dirname(hdf_file), "MyProject_Results.gdb")
+
+# Extract all results
+arcpy.RASCommander.LoadHECRAS2DResults(
+    input_hdf=hdf_file,
+    results_elements=["Max WSE at Cell Centers", "Max Vel at Cell Faces"],
+    output_gdb=gdb_path,
+    create_gdb=True
+)
+
+print(f"Results organized in: {gdb_path}")
+
+# Create flood depth raster (requires Spatial Analyst)
+if arcpy.CheckExtension("Spatial") == "Available":
+    arcpy.CheckOutExtension("Spatial")
+    wse_points = os.path.join(gdb_path, "Results", "MaxWSE_CellCenters")
+    depth_raster = arcpy.sa.Idw(wse_points, "Max_WSE")
+    depth_raster.save(os.path.join(gdb_path, "FloodDepth"))"""
+            },
+            {
+                "title": "Time Analysis",
+                "description": "Analyze when peak conditions occurred",
+                "code": """import arcpy
+from datetime import datetime
+
+# Extract results
+result = arcpy.RASCommander.LoadHECRAS2DResults(
+    input_hdf=r"C:\\RAS_Projects\\TimeSeries.p01.hdf",
+    results_elements=["Max WSE at Cell Centers", "Max Vel at Cell Faces"]
+)
+
+# Analyze timing of peaks
+wse_fc = result[0]
+vel_fc = result[1]
+
+# Find when most cells peaked
+time_counts = {}
+with arcpy.da.SearchCursor(wse_fc, ["Time_of_Max"]) as cursor:
+    for row in cursor:
+        time_str = row[0]
+        time_counts[time_str] = time_counts.get(time_str, 0) + 1
+
+peak_time = max(time_counts, key=time_counts.get)
+print(f"Most cells peaked at: {peak_time}")
+print(f"Number of cells: {time_counts[peak_time]}")"""
+            },
+            {
+                "title": "Hazard Classification",
+                "description": "Classify flood hazard based on depth and velocity",
+                "code": """import arcpy
+
+# Extract results
+arcpy.RASCommander.LoadHECRAS2DResults(
+    input_hdf=r"C:\\RAS_Projects\\Hazard.p01.hdf",
+    results_elements=["Max WSE at Cell Centers", "Max Vel at Cell Faces"],
+    create_gdb=True
+)
+
+# Join velocity to WSE points for hazard analysis
+# (Additional spatial join and hazard calculation code would go here)
+
+print("Results ready for hazard classification")"""
+            }
+        ]

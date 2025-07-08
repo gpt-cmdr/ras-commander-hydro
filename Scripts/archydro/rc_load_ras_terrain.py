@@ -21,12 +21,42 @@ class LoadRASTerrain(object):
     data will be loaded.
     """
     def __init__(self):
+        # Core properties
         self.label = "Load HEC-RAS Terrain"
         self.description = """Loads terrain layers defined in a HEC-RAS project's .rasmap file into the current map.
         
         ⚠️ IMPORTANT REMINDER: The loaded terrain layers are base VRT files only. Any vector terrain 
         modifications (breaklines, high ground, etc.) made in RAS Mapper are NOT included in these layers."""
+        
+        # Extended metadata properties
+        self.summary = "Import HEC-RAS terrain layers from RAS Mapper VRT files"
+        self.usage = """Select a HEC-RAS project file to load associated terrain layers.
+        
+        Steps:
+        1. Browse to a HEC-RAS project file (*.prj)
+        2. Choose to import all terrains or select specific ones
+        3. Terrain layers will be added to the current map
+        
+        Limitations:
+        • Only loads base terrain rasters (VRT files)
+        • Does NOT include vector terrain modifications
+        • Does NOT include breaklines or high ground modifications
+        • For complete terrain with modifications, use HEC-RAS itself
+        
+        The tool reads terrain definitions from the .rasmap file and loads
+        the corresponding Virtual Raster (VRT) files."""
+        
+        # Tool behavior
         self.canRunInBackground = False
+        self.category = "HEC-RAS Data Import"
+        
+        # Documentation and credits
+        self.tags = ["HEC-RAS", "Terrain", "DEM", "RAS Mapper", "VRT", "Elevation", "Arc Hydro"]
+        self.credits = "CLB Engineering Corporation"
+        self.author = "CLB Engineering Corporation"
+        self.version = "1.0.0"
+        
+        # Cache for terrain metadata
         self._terrain_cache = {}
 
     def getParameterInfo(self):
@@ -56,17 +86,43 @@ class LoadRASTerrain(object):
         ]
         
         params[0].filter.list = ["prj"]
-        params[0].description = """Select the HEC-RAS project file (*.prj). 
-        The tool will automatically find the associated .rasmap file in the same directory."""
+        params[0].description = """Select the HEC-RAS project file (*.prj).
+        
+        The tool will:
+        1. Automatically find the associated .rasmap file
+        2. Read terrain layer definitions
+        3. Locate the corresponding VRT files
+        
+        Ensure the project has been opened in RAS Mapper at least once
+        to generate the necessary terrain files."""
+        params[0].category = "Input Data"
         
         params[1].value = False
-        params[1].description = """Check this box to import all terrain layers found in the project. 
-        When checked, the terrain selection list will be disabled."""
+        params[1].description = """Check this box to import all terrain layers found in the project.
+        
+        When enabled:
+        • All terrain layers will be loaded
+        • Terrain selection list will be disabled
+        • Useful for complete project visualization
+        
+        When disabled:
+        • Select specific terrain layers to load
+        • Reduces memory usage for large projects"""
+        params[1].category = "Import Options"
         
         params[2].filter.type = "ValueList"
-        params[2].description = """Select specific terrain layers to load. 
-        This list is populated from the terrains found in the .rasmap file. 
-        Disabled when 'Import All Terrains' is checked."""
+        params[2].description = """Select specific terrain layers to load.
+        
+        Available terrains:
+        • Listed from the .rasmap file
+        • Each represents a VRT (Virtual Raster)
+        • May include primary terrain and alternates
+        
+        Note: Disabled when 'Import All Terrains' is checked.
+        
+        ⚠️ Remember: These are base terrain files only.
+        Vector modifications are not included."""
+        params[2].category = "Import Options"
         
         return params
     
@@ -200,10 +256,130 @@ class LoadRASTerrain(object):
         messages.addMessage(f"\nProcessing complete. Added {layers_added} terrain layer(s).")
         return
     
-    def getHelp(self, tool_name):
-        """Return help documentation URL for the tool."""
-        help_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-                                "Doc", "RASCommander_Help.html")
+    def getHelp(self, tool_name=None):
+        """Return help documentation for the tool.
+        
+        This method is called when the user clicks the help button.
+        It can return:
+        - A URL (starting with http:// or https://)
+        - A local file path (starting with file:///)
+        - HTML content directly (for embedded help)
+        """
+        # Try local help file first
+        help_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
+            "Doc", "RASCommander_Help.html"
+        )
+        
         if os.path.exists(help_file):
-            return f"file:///{help_file.replace(os.sep, '/')}#load-hec-ras-terrain"
-        return None
+            # Return local help file
+            anchor = "#load-hec-ras-terrain"
+            return f"file:///{help_file.replace(os.sep, '/')}{anchor}"
+        else:
+            # Fallback to online documentation
+            return "https://github.com/gpt-cmdr/ras-commander-hydro#load-hec-ras-terrain"
+    
+    def getCodeSamples(self):
+        """Provide code samples for using this tool programmatically."""
+        return [
+            {
+                "title": "Load All Terrains",
+                "description": "Import all terrain layers from a HEC-RAS project",
+                "code": """import arcpy
+
+# Set input project file
+project_file = r"C:\\RAS_Projects\\MyProject\\MyProject.prj"
+
+# Load all terrains
+arcpy.RASCommander.LoadRASTerrain(
+    in_ras_project=project_file,
+    import_all=True
+)
+
+print("All terrain layers loaded to current map")
+
+# List loaded raster layers
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+map_obj = aprx.activeMap
+for lyr in map_obj.listLayers():
+    if lyr.isRasterLayer:
+        print(f"  - {lyr.name}")"""
+            },
+            {
+                "title": "Load Specific Terrains",
+                "description": "Select and load specific terrain layers",
+                "code": """import arcpy
+
+# Set input project file
+project_file = r"C:\\RAS_Projects\\MyProject\\MyProject.prj"
+
+# Load specific terrains
+terrains = ["Primary Terrain", "Proposed Conditions"]
+
+arcpy.RASCommander.LoadRASTerrain(
+    in_ras_project=project_file,
+    import_all=False,
+    terrains_to_load=terrains
+)
+
+print(f"Loaded {len(terrains)} terrain layers")"""
+            },
+            {
+                "title": "Terrain Analysis",
+                "description": "Load terrain and perform elevation analysis",
+                "code": """import arcpy
+
+# Load primary terrain
+project_file = r"C:\\RAS_Projects\\FloodStudy\\FloodStudy.prj"
+
+arcpy.RASCommander.LoadRASTerrain(
+    in_ras_project=project_file,
+    import_all=False,
+    terrains_to_load=["Primary Terrain"]
+)
+
+# Get loaded terrain layer
+aprx = arcpy.mp.ArcGISProject("CURRENT")
+map_obj = aprx.activeMap
+terrain_lyr = None
+
+for lyr in map_obj.listLayers():
+    if lyr.isRasterLayer and "Primary Terrain" in lyr.name:
+        terrain_lyr = lyr
+        break
+
+if terrain_lyr:
+    # Get elevation statistics
+    desc = arcpy.Describe(terrain_lyr)
+    print(f"Terrain extent: {desc.extent}")
+    
+    # Calculate statistics if needed
+    arcpy.management.CalculateStatistics(terrain_lyr)"""
+            },
+            {
+                "title": "Batch Processing",
+                "description": "Load terrains from multiple projects",
+                "code": """import arcpy
+import os
+
+# Directory containing HEC-RAS projects
+project_dir = r"C:\\RAS_Projects"
+
+# Find all project files
+for root, dirs, files in os.walk(project_dir):
+    for file in files:
+        if file.endswith(".prj"):
+            project_path = os.path.join(root, file)
+            
+            try:
+                # Load primary terrain from each project
+                arcpy.RASCommander.LoadRASTerrain(
+                    in_ras_project=project_path,
+                    import_all=False,
+                    terrains_to_load=["Primary Terrain"]
+                )
+                print(f"Loaded terrain from: {file}")
+            except Exception as e:
+                print(f"Failed to load from {file}: {str(e)}")"""
+            }
+        ]

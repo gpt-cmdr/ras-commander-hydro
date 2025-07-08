@@ -1,4 +1,4 @@
-The toolbox is only meant to support 6.x Model Series Results
+The toolbox is only meant to support 6.x Model Series Results, although it will read some data from 5.0.7 results files but it is not directly supported.  
 
 1D Unsteady Model Default HDF For Unit Tests: BaldEagle.p01.hdf
 
@@ -6,4 +6,7 @@ The toolbox is only meant to support 6.x Model Series Results
 
 2D Unsteady Default HDF For Unit Tests BaldEagleDamBrk.p07.hdf
 
-2D Unsteady with Pipes and Pumps Default HDF For Unit Tests: DavisStormSystem.p02.hdf
+2D Unsteady with Pipes and Pumps Default HDF For Unit Tests: DavisStormSystem.p02.hdf and BeaverLakeSWMMImpor.p01.hdf
+The Davis project has pipes, conduits and pumps.  Beaver Lake only has pipes and conduits.  
+
+To test whether 

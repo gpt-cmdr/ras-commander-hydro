@@ -2,309 +2,286 @@
 
 <div align="center">
   <img src="Images/ras-commander-archydro.svg" alt="RAS Commander Arc Hydro Tools" width="600">
-  
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-  [![ArcGIS Pro](https://img.shields.io/badge/ArcGIS%20Pro-2.8%2B-blue)](https://www.esri.com/en-us/arcgis/products/arcgis-pro/overview)
-  [![HEC-RAS](https://img.shields.io/badge/HEC--RAS-6.x-green)](https://www.hec.usace.army.mil/software/hec-ras/)
-  
-  **Bringing HEC-RAS 6.x HDF5 Data to ArcGIS Pro**
-  
-  [CLB Engineering](https://clbengineering.com/) | [RAS Commander Library](https://github.com/gpt-cmdr/ras-commander) | [Arc Hydro](https://www.esri.com/en-us/industries/water-resources/arc-hydro)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![ArcGIS Pro](https://img.shields.io/badge/ArcGIS%20Pro-2.8%2B-blue)](https://www.esri.com/en-us/arcgis/products/arcgis-pro/overview)
+[![HEC-RAS](https://img.shields.io/badge/HEC--RAS-6.x-green)](https://www.hec.usace.army.mil/software/hec-ras/)
+
+**Bringing HEC-RAS 6.x Direct Data Access to ArcGIS**
+
+### 🎉 Launching at Esri User Conference 2025 🎉
+
+[CLB Engineering](https://clbengineering.com/) | [RAS Commander Library](https://github.com/gpt-cmdr/ras-commander) | [Arc Hydro](https://www.esri.com/en-us/industries/water-resources/arc-hydro)
+
 </div>
+
+---
+
+## Partnership Announcement
+
+**ESRI has partnered with CLB Engineering Corporation's William "Bill" Katzenmeyer**, Vice President and creator of the RAS Commander Open Source Python Library, to bring powerful HEC-RAS 6.x HDF5 data extraction capabilities directly into ArcGIS Pro through the Arc Hydro Tools framework.
+
+This collaboration represents a groundbreaking application of **LLM Forward engineering**—using Large Language Models to rapidly develop sophisticated geospatial tools that bridge hydraulic modeling and GIS workflows.
+
+### 🚀 From Concept to Conference in One Month
+
+Following an ASFPM brainstorming session in late May 2025, this toolbox was developed using CLB's innovative LLM Forward approach, achieving production‑ready functionality in just over a month—demonstrating the transformative potential of AI‑assisted development in the water‑resources sector.
 
 ---
 
 ## Overview
 
-**RAS Commander Arc Hydro Tools** is an ArcGIS Python Toolbox that brings powerful HEC-RAS 6.x HDF5 data extraction capabilities directly into ArcGIS Pro. This toolbox enables hydraulic engineers and GIS professionals to seamlessly load and visualize HEC-RAS 1D and 2D geometry, terrain, and results data without manual conversion steps.
+**RAS Commander Arc Hydro Tools** enables hydraulic engineers and GIS professionals to seamlessly extract and visualize HEC‑RAS 1D and 2D geometry, terrain, and results data without manual conversion steps. This free and open‑source toolbox brings the power of the [RAS Commander library](https://github.com/gpt-cmdr/ras-commander) directly into ArcGIS Pro.
 
 ### Key Features
 
-- 📊 **Direct HDF5 Import** - Load HEC-RAS data directly from geometry (g*.hdf) and plan (p*.hdf) files
-- 🗺️ **1D Geometry Support** - Extract cross sections, river centerlines, bank lines, and structures
-- 🌊 **2D Geometry Support** - Import mesh elements, breaklines, boundary conditions, and cell polygons
-- 🏗️ **Pipe Networks** - Full support for storm/sewer pipe networks including SWMM imports
-- 📈 **Results Visualization** - Display maximum WSE and velocity results with time of occurrence
-- ⛰️ **Terrain Loading** - Import HEC-RAS terrain layers from RASMapper VRT files
-- 🗂️ **Project Organization** - Batch process entire HEC-RAS projects into organized geodatabases
+* 📊 **Direct HDF5 Import** – Load HEC‑RAS data directly from geometry (`g*.hdf`) and plan (`p*.hdf`) files
+* 🗺️ **1D Geometry Support** – Extract cross sections, river centerlines, bank lines, and structures
+* 🌊 **2D Geometry Support** – Import mesh elements, breaklines, boundary conditions, and cell polygons
+* 🏗️ **Pipe Networks** – Full support for storm/sewer pipe networks including SWMM imports
+* 📈 **Results Visualization** – Display maximum WSE and velocity results with time of occurrence
+* ⛰️ **Terrain Loading** – Import HEC‑RAS terrain layers from RAS Mapper VRT files
+* 🗂️ **Project Organization** – Batch process entire HEC‑RAS projects into organized geodatabases
 
 <div align="center">
   <a href="https://clbengineering.com/">
     <img src="Images/CLBEngineeringMainLogo.png" alt="CLB Engineering" width="300">
   </a>
-  
-  *Sponsored by [CLB Engineering](https://clbengineering.com/) in cooperation with ESRI*
+
+*Developed by [CLB Engineering](https://clbengineering.com/) in partnership with ESRI*
+
 </div>
+
+---
+
+## 📸 Interface Walk‑Through
+
+Below are high‑resolution screenshots of each Arc Hydro tool in action to help you get up to speed quickly.
+
+### Load HEC‑RAS 1D Geometry Layers
+
+<p align="center">
+  <img src="Images/docs/Load1DGeometry.png" alt="Load 1D Geometry" width="35%">
+</p>
+
+---
+
+### Load HEC‑RAS 2D Geometry Layers
+
+<p align="center">
+  <img src="Images/docs/Load2DGeometry.png" alt="Load 2D Geometry" width="35%">
+</p>
+
+---
+
+### Load HEC‑RAS 2D Results Summary Layers
+
+<p align="center">
+  <img src="Images/docs/Load2DSummaryResults.png" alt="Load 2D Results Summary" width="35%">
+</p>
+
+---
+
+### Load HEC‑RAS Terrain
+
+<p align="center">
+  <img src="Images/docs/LoadRASTerrain.png" alt="Load RAS Terrain" width="35%">
+</p>
+
+---
+
+### Organize HEC‑RAS Project
+
+<p align="center">
+  <img src="Images/docs/OrganizeRASProject.png" alt="Organize HEC‑RAS Project" width="35%">
+</p>
+
+---
+
+### Full 2D Model Example — New Orleans HEC Example Project
+
+<p align="center">
+  <img src="Images/docs/rc_neworleanspipes.png" alt="New Orleans Imported Pipe Networks" width="50%">
+</p>
+
+<p align="center">
+  <img src="Images/docs/rc_neworleanspipes_results.png" alt="New Orleans Maximum WSEL" width="50%">
+</p>
+
+These images showcase a 2D HEC‑RAS model of the New Orleans metro storm‑water system, complete with pipe networks, mesh polygons, and a maximum WSEL raster generated directly inside ArcGIS Pro.
+
+---
+
+## Community‑Driven Development
+
+This is a **community‑driven effort**, and we're actively seeking your feedback!
+
+### Are you a...
+
+* 🏛️ **Municipality** looking to integrate HEC‑RAS data into dashboards?
+* 👷 **Engineer** communicating multi‑hazard flood risk?
+* 🗺️ **GIS Professional** preparing 2D model data?
+* 🔬 **Researcher** analyzing model results?
+
+**We want to hear from you!** [Share your ideas and use cases](https://github.com/gpt-cmdr/ras-commander-hydro/issues)
+
+---
+
+## The LLM Forward Revolution
+
+This project showcases CLB Engineering's [LLM Forward approach](https://clbengineering.com/)—a revolutionary methodology that leverages Large Language Models to accelerate software development while maintaining professional‑grade quality. Learn more about this innovative approach and the author's work at [Engineering with LLMs](https://engineeringwithllms.info/).
+
+### What Makes This Special?
+
+1. **Rapid Development**: From concept to production in just over a month
+2. **Cross‑Domain Expertise**: Seamlessly bridges hydraulic engineering and GIS
+3. **Community Focused**: Built with user feedback at its core
+4. **Open Source**: Transparent development process you can contribute to
 
 ---
 
 ## Installation
 
-### Primary Method: Arc Hydro Tools Installation
+### Primary Method: Arc Hydro Tools Installation
 
-The RAS Commander toolbox is included as part of the Arc Hydro Tools distribution. This is the recommended installation method for most users.
+The RAS Commander toolbox will be included as part of the Arc Hydro Tools distribution. This is the recommended installation method for most users.
 
-1. Install Arc Hydro Tools following the standard installation process
-2. The RAS Commander toolbox will be available under:
+1. Install Arc Hydro Tools following the standard installation process
+2. The RAS Commander toolbox will be available under:
+
    ```
-   Toolboxes → Arc Hydro Tools → RAS Commander
+   Toolboxes → Arc Hydro Tools → RAS Commander
    ```
 
 ### Development Installation
 
 For developers and users who want to extend or customize the tools:
 
-1. **Fork and Clone the Repository**
+1. **Clone the Repository**
+
    ```bash
-   git clone https://github.com/your-fork/ras-commander-hydro.git
+   git clone https://github.com/gpt-cmdr/ras-commander-hydro.git
    cd ras-commander-hydro
    ```
 
-2. **Option A: Add Toolbox in ArcGIS Pro**
-   - Open ArcGIS Pro
-   - In the Catalog pane, right-click on Toolboxes
-   - Select "Add Toolbox"
-   - Navigate to `toolboxes/RAS Commander.pyt`
+2. **Option A: Add Toolbox in ArcGIS Pro**
 
-3. **Option B: Install Permanently (Development Only)**
-   ```bash
-   # Run as Administrator
-   install_toolbox_as_admin.bat
+   * Open ArcGIS Pro
+   * In the Catalog pane, right‑click on **Toolboxes**
+   * Select **Add Toolbox**
+   * Navigate to `toolboxes/RAS-Commander.pyt`
+
+3. **Option B: Install for Development (Requires Admin)**
+
+   ```powershell
+   # Run PowerShell as Administrator
+   cd Resources
+   .\install_toolbox.ps1
    ```
-   
-   ⚠️ **Warning**: This installation will be overwritten if Arc Hydro Tools is installed or updated. This method is for development only.
+
+   To uninstall:
+
+   ```powershell
+   # Run PowerShell as Administrator
+   cd Resources
+   .\uninstall_toolbox.ps1
+   ```
 
 ---
 
 ## Tools Overview
 
-### 🔧 Load HEC-RAS 1D Geometry Layers
-Extract 1D hydraulic model elements including:
-- Cross sections with station-elevation data
-- River and reach centerlines
-- Left and right bank lines
-- Edge lines for terrain processing
-- Bridges, culverts, weirs, and other structures
+### 🔧 Load HEC‑RAS 1D Geometry Layers
 
-### 🌐 Load HEC-RAS 2D Geometry Layers
-Import 2D model components including:
-- 2D flow area perimeters
-- Mesh cell centers, faces, and polygons
-- Breaklines with cell spacing attributes
-- External and internal boundary conditions
-- Pipe conduits and junction nodes (storm/sewer networks)
+Extract comprehensive 1D hydraulic model elements for report figures and analysis.
 
-### 📊 Load HEC-RAS 2D Results Summary Layers
-Visualize simulation results including:
-- Maximum water surface elevation at cell centers
-- Maximum velocity at cell faces
-- Time of maximum occurrence for all results
+### 🌐 Load HEC‑RAS 2D Geometry Layers
 
-### ⛰️ Load HEC-RAS Terrain
-Import terrain layers from RASMapper:
-- Loads VRT (Virtual Raster) files with HEC-RAS priority
-- Supports multiple terrain layers per project
+Import complete 2D model components including mesh cells as polygons for advanced spatial analysis.
 
-⚠️ **Important**: Only base terrain rasters are loaded. Vector terrain modifications (breaklines, high ground, etc.) made in RAS Mapper are not included.
+### 📊 Load HEC‑RAS 2D Results Summary Layers
 
-### 🗂️ Organize HEC-RAS Project
-Comprehensive project processing tool that:
-- Processes all plan files in a project directory
-- Creates organized geodatabase structure
-- Extracts all available geometry and results
-- Groups outputs by project and plan number
-- Automatically adds results to current map
+Visualize maximum water‑surface elevation and velocity results with temporal data.
+
+### ⛰️ Load HEC‑RAS Terrain
+
+Import terrain layers from RAS Mapper with proper georeferencing.
+
+### 🗂️ Organize HEC‑RAS Project
+
+Comprehensive batch‑processing tool for entire HEC‑RAS projects.
 
 ---
 
-## Development Narrative: AI-Powered Tool Creation
+## Current Capabilities & Roadmap
 
-### The Power of LLM-Assisted Development
+### Initial Release Features
 
-The RAS Commander Arc Hydro Tools represent a unique achievement in AI-assisted software development. This toolbox was created through an innovative process that demonstrates the transformative potential of Large Language Models (LLMs) in software engineering.
+* ✅ 1D and 2D Geometry Extraction (Including Pipe Networks!)
+* ✅ Max WSE and Velocity as 2D Mesh Results
+* ✅ Terrain Import for Inundation Mapping
+* ✅ Support for HEC‑RAS 2D Models
+* ✅ Organize Entire Projects as Geodatabases
 
-#### Foundation: The RAS Commander Library
+### Coming Soon
 
-The journey began with the [ras-commander library](https://github.com/gpt-cmdr/ras-commander), an LLM-driven automation library built as a modern Python complement to the classic HECRASController. This library included several HDF5-to-GeoPandas conversion functions that served as the foundation for our ArcGIS tools.
+* 📊 **Improved Schemas & Layer Styling**
+* 📈 **1D Results & Full Time Series**
+* 🌊 **Fluvial/Pluvial Delineation**
+* 📍 **Land Use Layer Integration**
+* 🔄 **Sync Changes Back to HEC‑RAS**
+* 🎯 **Community‑Requested Features**
 
-#### Transfer Learning Between Frameworks
-
-What makes this development process remarkable is the LLM's ability to perform **transfer learning** between different frameworks and constraints:
-
-1. **Framework Translation**: The LLM successfully translated GeoPandas-based operations to ArcPy equivalents while maintaining functional integrity
-2. **Constraint Adaptation**: The code was adapted to work within ArcGIS Pro's Python environment without adding any dependencies beyond the standard ArcPy installation
-3. **Metadata Preservation**: Where possible, the tools preserve HEC-RAS HDF5 data structures and naming conventions for consistency
-
-#### Self-Contained Architecture
-
-A key achievement was creating completely self-contained tools that:
-- Rely only on standard ArcPy and h5py (included with ArcGIS Pro)
-- Require no additional package installations
-- Maintain high performance through optimized numpy operations
-- Handle complex geometries and large datasets efficiently
-
-### Technical Innovations
-
-#### Dynamic Field Mapping
-
-One of the most interesting challenges involved handling pipe network data from SWMM imports. HEC-RAS stores these with column names that sometimes include typos or unconventional formatting. The tools dynamically:
-- Detect and correct field name typos (e.g., "Condtui_Connections" → "Conduit_Connections")
-- Handle reserved ArcGIS field names (e.g., "Shape" → "Shape_Type")
-- Preserve all original HDF5 attributes while ensuring ArcGIS compatibility
-
-#### Intelligent Data Extraction
-
-The tools implement smart extraction strategies:
-- Pre-compute mesh faces for efficient polygon construction
-- Use vectorized numpy operations for coordinate transformations
-- Implement optimized batch insertion for large datasets
-- Cache HDF5 metadata to minimize file access
-
-### The LLM Advantage
-
-This project demonstrates several unique advantages of LLM-assisted development:
-
-1. **Rapid Prototyping**: Complex tool logic was developed and refined through iterative conversations
-2. **Cross-Domain Knowledge**: The LLM could apply hydraulic modeling concepts while respecting GIS constraints
-3. **Best Practices Integration**: Modern Python patterns and ArcPy best practices were automatically incorporated
-4. **Documentation Generation**: Comprehensive help documentation and metadata were created alongside the code
-
-The result is a professional-grade toolbox that bridges two specialized domains—hydraulic modeling and GIS—through the power of AI-assisted development.
+[View Full Roadmap & Vote on Features](https://github.com/gpt-cmdr/ras-commander-hydro/issues)
 
 ---
 
-## Usage Examples
+## Get Involved
 
-### Basic 1D Geometry Import
-```python
-import arcpy
+### Webinar This Fall!
 
-# Load cross sections and river centerlines
-arcpy.RASCommander.LoadHECRAS1DGeometry(
-    input_hdf=r"C:\Models\MyProject.g01.hdf",
-    geometry_elements=["Cross Sections", "River Centerlines"],
-    output_cross_sections=r"C:\Output\Output.gdb\CrossSections",
-    output_centerlines=r"C:\Output\Output.gdb\RiverCenterlines"
-)
-```
+Join us for an in‑depth webinar showcasing advanced workflows and new features.
 
-### Organize Entire Project
-```python
-# Process all plan files in a project
-arcpy.RASCommander.OrganizeRASProject(
-    input_path=r"C:\Models\MyProject",
-    output_gdb=r"C:\Output\MyProject_Organized.gdb",
-    include_cell_polygons=True,
-    extract_all_results=True
-)
-```
+### Contributors Welcome!
+
+Visit our [GitHub Repository](https://github.com/gpt-cmdr/ras-commander-hydro) to:
+
+* Report issues
+* Suggest features
+* Submit pull requests
+* Share your use cases
 
 ---
 
-## Requirements
+## Resources & Links
 
-- **ArcGIS Pro**: Version 2.8 or higher
-- **HEC-RAS**: Version 6.x model files
-- **Python**: Uses ArcGIS Pro's built-in Python environment
-- **Dependencies**: None beyond standard ArcPy (h5py and numpy are included)
-
----
-
-## Project Structure
-
-```
-ras-commander-hydro/
-├── Images/                          # Branding and documentation images
-├── Scripts/
-│   └── archydro/                   # Tool implementation modules
-│       ├── rc_load_hecras_1d_geometry.py
-│       ├── rc_load_hecras_2d_geometry.py
-│       ├── rc_load_hecras_2d_results.py
-│       ├── rc_load_ras_terrain.py
-│       ├── rc_organize_ras_project.py
-│       └── rc_utils.py             # Shared utilities
-├── toolboxes/
-│   ├── RAS Commander.pyt           # Main Python toolbox
-│   └── *.pyt.xml                   # Tool metadata files
-├── Doc/
-│   └── RASCommander_Help.html      # Integrated help documentation
-├── install_toolbox.ps1             # PowerShell installation script
-├── install_toolbox_as_admin.bat    # Admin installation batch file
-└── README.md                       # This file
-```
-
----
-
-## Contributing
-
-We welcome contributions! The RAS Commander Arc Hydro Tools are part of a community-driven effort to improve hydraulic modeling workflows.
-
-### How to Contribute
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow the existing code style and naming conventions
-- Maintain compatibility with Arc Hydro Tools standards
-- Use the `rc_` prefix for all Python modules
-- Test with various HEC-RAS model types (1D, 2D, combined)
-- Update documentation for new features
-
----
-
-## Future Roadmap
-
-### Planned Features
-
-- **1D Results**: Water surface profiles, velocities, and flow data
-- **Time Series Results**: Full temporal data extraction and animation
-- **Floodplain Mapping**: Automated flood extent and depth grid generation
-- **Model Synchronization**: Two-way data exchange with RAS Mapper
-- **Cloud Integration**: Support for cloud-hosted HEC-RAS models
-- **Performance Monitoring**: Model runtime statistics and diagnostics
-
-### Community Requests
-
-We're actively seeking feedback from:
-- 🏛️ **Municipalities** looking to integrate HEC-RAS data into dashboards
-- 👷 **Engineers** communicating multi-hazard flood risk
-- 🗺️ **GIS Professionals** preparing 2D model data
-- 🔬 **Researchers** analyzing model results
-
-[Share your ideas and use cases!](https://github.com/gpt-cmdr/ras-commander-hydro/issues)
+* **RAS Commander Arc Hydro Tools**: [https://github.com/gpt-cmdr/ras-commander-hydro](https://github.com/gpt-cmdr/ras-commander-hydro)
+* **RAS Commander Library**: [https://github.com/gpt-cmdr/ras-commander](https://github.com/gpt-cmdr/ras-commander)
+* **CLB Engineering Corporation**: [https://clbengineering.com/](https://clbengineering.com/)
+* **Engineering with LLMs**: [https://engineeringwithllms.info/](https://engineeringwithllms.info/)
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-- **[CLB Engineering](https://clbengineering.com/)** - Project sponsor and hydraulic engineering expertise
-- **[ESRI](https://www.esri.com/)** - Arc Hydro Tools integration and GIS platform
-- **[USACE HEC](https://www.hec.usace.army.mil/)** - HEC-RAS software and HDF5 format documentation
-- **[ras-commander](https://github.com/gpt-cmdr/ras-commander)** - Original Python library and HDF5 extraction logic
-
-## Trademarks
-
-- **HEC-RAS™** is a trademark of the U.S. Army Corps of Engineers (USACE) Hydrologic Engineering Center (HEC)
-- **ARC HYDRO** is a trademark of Environmental Systems Research Institute (ESRI)
-- **RAS Commander™** is a trademark of CLB Engineering Corporation
-
-*RAS Commander Arc Hydro Tools is an independent project and is not affiliated with, endorsed by, or sponsored by USACE or HEC.*
+* **[ESRI](https://www.esri.com/)** – Partnership and Arc Hydro Tools integration
+* **[CLB Engineering](https://clbengineering.com/)** – Project sponsor and LLM Forward methodology
+* **[USACE HEC](https://www.hec.usace.army.mil/)** – HEC‑RAS software and Example Projects
+* **Water Resources Community** – For invaluable feedback and use cases
 
 ---
 
 <div align="center">
   <img src="Images/ras-commander_logo.svg" alt="RAS Commander" width="150">
-  
-  **Transform Your HEC-RAS Workflow Today**
-  
-  [Get Started](https://github.com/gpt-cmdr/ras-commander-hydro) | [Documentation](Doc/RASCommander_Help.html) | [Report Issues](https://github.com/gpt-cmdr/ras-commander-hydro/issues)
+
+**Transform Your HEC‑RAS Workflow Today**
+
+### 🎉 See us at Esri User Conference 2025! 🎉
+
+[Get Started](https://github.com/gpt-cmdr/ras-commander-hydro) | [Documentation](Doc/RASCommander_Help.html) | [Report Issues](https://github.com/gpt-cmdr/ras-commander-hydro/issues)
+
 </div>

@@ -1,0 +1,139 @@
+RAS Commander is coming to 
+Arc Hydro Tools
+
+Bringing HEC-RAS 6.x Direct Data Access to ArcGIS
+
+•ESRI has Partnered with CLB Engineering 
+Corporation's Willliam "Bill" Katzenmeyer, creator 
+of the RAS CommanderOpen Source Python 
+Library
+•Usingan LLM Forward approach, CLB has rapidly 
+developed a subset of HDF data 
+accessfunctionality into an ArcGIS Toolbox
+•Features for Initial Release:
+o1D and 2D Geometry Extraction
+oMaxWSE and Velocity as 2DMesh Results
+oTerrain Import for Inundation Mapping
+oSupport for HEC-RAS 2D Models
+
+
+
+
+
+
+Free and Open Source Tools Brought to You By: 
+
+
+Load 1D and 2D 
+Geometry Elements
+
+Assist with Report Figures and Visualizations
+
+•Bring all of your 1D and 2D geometry 
+elements right into ArcGIS
+•Includes Pipe Networks for Urban 
+Drainage! 
+•Column names are preserved and should 
+be identical to RAS Mapper except where 
+special characters were used in the HDF
+
+
+Bonus: Exporting Mesh Cells as polygons 
+allows for mesh-based spatial analysis 
+methods not available in RAS Mapper.
+
+
+
+2D Results Summaries
+
+Raw Mesh Results Data as Points
+
+•Max WSEL at Cell Centers
+•Max Velocity at Cell Faces
+•Timestamps for Maximum Values
+
+
+
+Note: 1D-only results can still be loaded via SDF and existing Arc Hydro workflows
+
+Direct 2D Mesh Results Export Provides Unique 
+Opportunities for Advanced Spatial Analysis
+
+
+Organize an Entire HEC-RAS Projectas Geodatabase
+
+Create Rich HEC-RAS Data Inventories in ArcGIS
+
+•Finds All Results HDF Files .pXX.hdf
+•Extracts all 1D, 2D Geometry and 2D Mesh 
+Results Data 
+•Creates Non-Overlapping Layer Names
+•Organizes layers by Plan Number
+
+
+Coming Soon: 
+
+Improved Schemas
+
+Improved Layer Styling
+
+Instructional Webinar
+
+
+
+Roadmap
+
+Where is RAS Commander in Arc Hydro going?
+
+This is an LLM Forward Experiment, coded after 
+an ASFPM brainstorming session in Late May 
+2025. With public release in Early July 2025, this 
+was alittle over a month of time. 
+
+Our First Goal is to Get Community Feedback 
+about desired HEC-RAS 6.x data integration 
+capabilities in ArcGIS
+
+Our Current Roadmap: 
+
+Layer Styling
+
+Schemas
+
+1D Results
+
+2D PipesResults
+
+Fluvial/Pluvial 
+Delineation
+
+Probabilistic Approaches
+
+Land Use Layers
+
+Plan and Unsteady 
+Metadata
+
+Syncing Changes back 
+to HEC-RAS
+
+Community-Requested 
+Features
+
+Tutorials
+
+Webinar this Fall!
+
+
+
+
+Github Repository
+
+Contributors 
+Welcome!
+
+
+LLM Forward Engineering for 
+Data-Driven Hazard Mitigation
+
+

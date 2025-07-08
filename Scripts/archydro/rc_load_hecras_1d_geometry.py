@@ -32,6 +32,7 @@ class LoadHECRAS1DGeometry(object):
     Loads 1D geometry elements from a HEC-RAS HDF file.
     """
     def __init__(self):
+        # Core properties
         self.label = "Load HEC-RAS 1D Geometry Layers"
         self.description = """Extracts 1D geometry elements from a HEC-RAS HDF file including cross sections, river centerlines, bank lines, and hydraulic structures.
         
@@ -45,7 +46,28 @@ class LoadHECRAS1DGeometry(object):
         • 1D Structures - Bridges, culverts, weirs, and other structures
         
         Note: Each selected element will create a separate feature class."""
+        
+        # Extended metadata properties
+        self.summary = "Extract 1D geometry elements from HEC-RAS HDF files"
+        self.usage = """Select a HEC-RAS geometry or plan HDF file and choose which 1D geometry elements to extract.
+        
+        Steps:
+        1. Browse to a HEC-RAS geometry (g*.hdf) or plan (p*.hdf) file
+        2. Select which geometry elements to extract
+        3. Specify output locations for each selected element
+        4. Optionally create an organized geodatabase
+        
+        The tool will automatically detect the coordinate system from the HDF file or associated .prj files."""
+        
+        # Tool behavior
         self.canRunInBackground = False
+        self.category = "HEC-RAS Data Import"
+        
+        # Documentation and credits
+        self.tags = ["HEC-RAS", "1D Geometry", "Cross Sections", "River Centerlines", "Hydraulic Modeling", "Arc Hydro"]
+        self.credits = "CLB Engineering Corporation"
+        self.author = "CLB Engineering Corporation"
+        self.version = "1.0.0"
         
         # Geometry elements
         self.CROSS_SECTIONS = "Cross Sections"
@@ -92,41 +114,108 @@ class LoadHECRAS1DGeometry(object):
         
         # Configure HDF file filter
         params[0].filter.list = ["hdf", "g*.hdf", "p*.hdf"]
-        params[0].description = "Select a HEC-RAS geometry file (g*.hdf) or plan file (p*.hdf) containing 1D geometry data."
+        params[0].description = """Select a HEC-RAS geometry file (g*.hdf) or plan file (p*.hdf) containing 1D geometry data.
         
-        params[1].description = """Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files. 
-        The tool will first attempt to read the CRS from the HDF file or associated .prj files."""
+        The tool will automatically detect available geometry elements in the file and extract the selected ones.
+        
+        Supported file types:
+        • Geometry files (g01.hdf, g02.hdf, etc.)
+        • Plan files with geometry (p01.hdf, p02.hdf, etc.)"""
+        params[0].category = "Input Data"
+        
+        params[1].description = """Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files.
+        
+        The tool will first attempt to read the CRS from:
+        1. The HDF file metadata
+        2. Associated .prj files in the project directory
+        3. The RAS Mapper projection file
+        
+        Only provide this parameter if automatic detection fails."""
+        params[1].category = "Input Data"
         
         # Set filters for multi-value parameters
         params[2].filter.type = "ValueList"
         params[2].filter.list = geometry_elements
         params[2].value = [self.CROSS_SECTIONS, self.RIVER_CENTERLINES]  # Default selection
-        params[2].description = """Select one or more geometry elements to extract from the HDF file. 
-        Each selected element will create a separate output feature class."""
+        params[2].description = """Select one or more geometry elements to extract from the HDF file.
+        
+        Available elements:
+        • Cross Sections - River cross section cut lines with detailed station-elevation data
+        • River Centerlines - Main channel centerlines for each river/reach
+        • Bank Lines - Left and right bank station definitions
+        • Edge Lines - River edge boundaries for terrain integration
+        • 1D Structures - Hydraulic structures including bridges, culverts, inline/lateral weirs
+        
+        Each selected element will create a separate output feature class with appropriate attributes."""
+        params[2].category = "Geometry Selection"
         
         # Set default output paths and descriptions
         params[3].value = r"memory\CrossSections"
-        params[3].description = "Output feature class for 1D cross sections with attributes."
+        params[3].description = """Output feature class for 1D cross sections.
+        
+        Attributes include:
+        • River and Reach names
+        • Cross section ID
+        • Station locations
+        • Geometry reference information"""
         
         params[4].value = r"memory\RiverCenterlines"
-        params[4].description = "Output feature class for river/reach centerlines."
+        params[4].description = """Output feature class for river/reach centerlines.
+        
+        Attributes include:
+        • River name
+        • Reach name
+        • Length
+        • Flow direction"""
         
         params[5].value = r"memory\BankLines"
-        params[5].description = "Output feature class for left and right bank lines."
+        params[5].description = """Output feature class for left and right bank lines.
+        
+        Attributes include:
+        • River and Reach names
+        • Bank position (Left/Right)
+        • Station references"""
         
         params[6].value = r"memory\EdgeLines"
-        params[6].description = "Output feature class for river edge lines."
+        params[6].description = """Output feature class for river edge lines.
+        
+        Used for terrain modification and 2D mesh generation.
+        Includes river/reach identification attributes."""
         
         params[7].value = r"memory\Structures1D"
-        params[7].description = "Output feature class for 1D structures (bridges, culverts, etc.)."
+        params[7].description = """Output feature class for 1D hydraulic structures.
+        
+        Structure types include:
+        • Bridges
+        • Culverts
+        • Inline structures (weirs, gates)
+        • Lateral structures
+        • Pumping stations
+        
+        Attributes include structure type, name, and hydraulic parameters."""
         
         # Geodatabase parameters
-        params[8].description = """Specify a geodatabase to organize all output feature classes. 
-        If provided, outputs will be created in this geodatabase instead of the default locations."""
+        params[8].description = """Specify a geodatabase to organize all output feature classes.
+        
+        If provided:
+        • All outputs will be created in feature datasets within this geodatabase
+        • Feature datasets will be organized by geometry type
+        • Automatic naming conventions will be applied
+        
+        Leave empty to use default output locations."""
+        params[8].category = "Output Organization"
         
         params[9].value = True  # Default to creating new geodatabase
-        params[9].description = """Create a new geodatabase based on the HDF file name. 
-        The geodatabase will be named using the pattern: ProjectName.pXX.gdb"""
+        params[9].description = """Create a new geodatabase based on the HDF file name.
+        
+        When enabled:
+        • Creates geodatabase named: ProjectName.pXX.gdb
+        • Organizes outputs in feature datasets
+        • Maintains HEC-RAS project structure
+        • Preserves all attribute relationships
+        
+        Recommended for organizing complete HEC-RAS projects."""
+        params[9].category = "Output Organization"
         
         return params
 
@@ -567,10 +656,89 @@ class LoadHECRAS1DGeometry(object):
         messages.addMessage("\nProcessing complete.")
         return
     
-    def getHelp(self, tool_name):
-        """Return help documentation URL for the tool."""
-        help_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-                                "Doc", "RASCommander_Help.html")
+    def getHelp(self, tool_name=None):
+        """Return help documentation for the tool.
+        
+        This method is called when the user clicks the help button.
+        It can return:
+        - A URL (starting with http:// or https://)
+        - A local file path (starting with file:///)
+        - HTML content directly (for embedded help)
+        """
+        # Try local help file first
+        help_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
+            "Doc", "RASCommander_Help.html"
+        )
+        
         if os.path.exists(help_file):
-            return f"file:///{help_file.replace(os.sep, '/')}#load-hec-ras-1d-geometry-layers"
-        return None
+            # Return local help file
+            anchor = "#load-hec-ras-1d-geometry-layers"
+            return f"file:///{help_file.replace(os.sep, '/')}{anchor}"
+        else:
+            # Fallback to online documentation
+            return "https://github.com/gpt-cmdr/ras-commander-hydro#load-hec-ras-1d-geometry-layers"
+    
+    def getCodeSamples(self):
+        """Provide code samples for using this tool programmatically."""
+        return [
+            {
+                "title": "Basic 1D Geometry Import",
+                "description": "Import cross sections and river centerlines to memory",
+                "code": """import arcpy
+
+# Set input parameters
+hdf_file = r"C:\\RAS_Projects\\MyProject\\MyProject.g01.hdf"
+geometry_elements = ["Cross Sections", "River Centerlines"]
+
+# Run the tool
+result = arcpy.RASCommander.LoadHECRAS1DGeometry(
+    input_hdf=hdf_file,
+    geometry_elements=geometry_elements,
+    output_cross_sections=r"memory\\CrossSections",
+    output_centerlines=r"memory\\RiverCenterlines"
+)
+
+print("1D geometry loaded successfully!")
+print(f"Cross sections: {result[0]}")
+print(f"Centerlines: {result[1]}")"""
+            },
+            {
+                "title": "Organize to Geodatabase",
+                "description": "Extract all 1D geometry to an organized geodatabase",
+                "code": """import arcpy
+import os
+
+# Input HDF file
+hdf_file = r"C:\\RAS_Projects\\MyProject\\MyProject.p01.hdf"
+
+# Create geodatabase path
+gdb_path = os.path.join(os.path.dirname(hdf_file), "MyProject.p01.gdb")
+
+# Extract all 1D geometry elements
+arcpy.RASCommander.LoadHECRAS1DGeometry(
+    input_hdf=hdf_file,
+    geometry_elements=["Cross Sections", "River Centerlines", "Bank Lines", "1D Structures"],
+    output_gdb=gdb_path,
+    create_gdb=True
+)
+
+print(f"1D geometry organized in: {gdb_path}")"""
+            },
+            {
+                "title": "With Custom Projection",
+                "description": "Load geometry with a specific coordinate system",
+                "code": """import arcpy
+
+# Define custom spatial reference
+sr = arcpy.SpatialReference(26915)  # NAD83 UTM Zone 15N
+
+# Run tool with override CRS
+arcpy.RASCommander.LoadHECRAS1DGeometry(
+    input_hdf=r"C:\\RAS_Projects\\MyProject.g01.hdf",
+    override_crs=sr,
+    geometry_elements=["Cross Sections", "River Centerlines"],
+    create_gdb=True
+)"""
+            }
+        ]
