@@ -48,7 +48,7 @@ class LoadRASTerrain(object):
         
         # Tool behavior
         self.canRunInBackground = False
-        self.category = "HEC-RAS Data Import"
+        # self.category = "HEC-RAS Data Import"  # REMOVE THIS LINE
         
         # Documentation and credits
         self.tags = ["HEC-RAS", "Terrain", "DEM", "RAS Mapper", "VRT", "Elevation", "Arc Hydro"]
@@ -95,7 +95,7 @@ class LoadRASTerrain(object):
         
         Ensure the project has been opened in RAS Mapper at least once
         to generate the necessary terrain files."""
-        params[0].category = "Input Data"
+        # params[0].category = "Input Data"  # Remove category grouping
         
         params[1].value = False
         params[1].description = """Check this box to import all terrain layers found in the project.
@@ -108,7 +108,7 @@ class LoadRASTerrain(object):
         When disabled:
         • Select specific terrain layers to load
         • Reduces memory usage for large projects"""
-        params[1].category = "Import Options"
+        # params[1].category = "Import Options"  # Remove category grouping
         
         params[2].filter.type = "ValueList"
         params[2].description = """Select specific terrain layers to load.
@@ -122,7 +122,7 @@ class LoadRASTerrain(object):
         
         ⚠️ Remember: These are base terrain files only.
         Vector modifications are not included."""
-        params[2].category = "Import Options"
+        # params[2].category = "Import Options"  # Remove category grouping
         
         return params
     

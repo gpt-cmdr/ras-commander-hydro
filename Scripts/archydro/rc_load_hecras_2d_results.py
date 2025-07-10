@@ -66,7 +66,7 @@ class LoadHECRAS2DResults(object):
         
         # Tool behavior
         self.canRunInBackground = False
-        self.category = "HEC-RAS Results Analysis"
+        # self.category = "HEC-RAS Results Analysis"  # REMOVE THIS LINE
         
         # Documentation and credits
         self.tags = ["HEC-RAS", "2D Results", "Water Surface Elevation", "Velocity", 
@@ -97,15 +97,15 @@ class LoadHECRAS2DResults(object):
             
             # Output parameters
             arcpy.Parameter(displayName="Output Max WSE at Cell Centers", name="output_max_wse", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output Max Vel at Cell Faces", name="output_max_face_vel", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             
             # Geodatabase organization parameters
             arcpy.Parameter(displayName="Output Geodatabase (Optional)", name="output_gdb", datatype="DEWorkspace", 
-                          parameterType="Optional", direction="Output", category="Output"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Create New Geodatabase", name="create_gdb", datatype="GPBoolean", 
-                          parameterType="Optional", direction="Input", category="Output")
+                          parameterType="Optional", direction="Input")
         ]
         
         # Configure HDF file filter

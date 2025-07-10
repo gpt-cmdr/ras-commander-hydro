@@ -70,7 +70,7 @@ class LoadHECRAS2DGeometry(object):
         
         # Tool behavior
         self.canRunInBackground = False
-        self.category = "HEC-RAS Data Import"
+        # self.category = "HEC-RAS Data Import"  # REMOVE THIS LINE
         
         # Documentation and credits
         self.tags = ["HEC-RAS", "2D Geometry", "Mesh", "Breaklines", "Boundary Conditions", 
@@ -111,29 +111,29 @@ class LoadHECRAS2DGeometry(object):
             
             # Output parameters
             arcpy.Parameter(displayName="Output 2D Breaklines", name="output_breaklines", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output 2D Boundary Condition Lines", name="output_bc_lines", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output Mesh Area Perimeters", name="output_perimeters", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output Mesh Cell Centers", name="output_cell_points", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output Mesh Cell Faces", name="output_cell_faces", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output Mesh Cells (Polygons)", name="output_cell_polys", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output Pipe Conduits", name="output_pipe_conduits", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output Pipe Nodes", name="output_pipe_nodes", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output Pipe Networks", name="output_pipe_networks", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             
             # Geodatabase organization parameters
             arcpy.Parameter(displayName="Output Geodatabase (Optional)", name="output_gdb", datatype="DEWorkspace", 
-                          parameterType="Optional", direction="Output", category="Output"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Create New Geodatabase", name="create_gdb", datatype="GPBoolean", 
-                          parameterType="Optional", direction="Input", category="Output")
+                          parameterType="Optional", direction="Input")
         ]
         
         # Configure HDF file filter
@@ -145,7 +145,7 @@ class LoadHECRAS2DGeometry(object):
         Supported file types:
         • Geometry files (g01.hdf, g02.hdf, etc.)
         • Plan files with geometry (p01.hdf, p02.hdf, etc.)"""
-        params[0].category = "Input Data"
+        # params[0].category = "Input Data"  # Remove category grouping
         
         params[1].description = """Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files.
         
@@ -155,7 +155,7 @@ class LoadHECRAS2DGeometry(object):
         3. The RAS Mapper projection file
         
         Only provide this parameter if automatic detection fails."""
-        params[1].category = "Input Data"
+        # params[1].category = "Input Data"  # Remove category grouping
         
         # Set filters for multi-value parameters
         params[2].filter.type = "ValueList"
@@ -177,7 +177,7 @@ class LoadHECRAS2DGeometry(object):
         • Pipe Networks - Complete network elements
         
         Each selected element creates a separate output feature class."""
-        params[2].category = "Geometry Selection"
+        # params[2].category = "Geometry Selection"  # Remove category grouping
         
         # Set default output paths and descriptions
         params[3].value = r"memory\Breaklines"
@@ -263,7 +263,7 @@ class LoadHECRAS2DGeometry(object):
         • Automatic naming conventions will be applied
         
         Leave empty to use default output locations."""
-        params[12].category = "Output Organization"
+        # params[12].category = "Output Organization"  # Remove category grouping
         
         params[13].value = True  # Default to creating new geodatabase
         params[13].description = """Create a new geodatabase based on the HDF file name.
@@ -275,7 +275,7 @@ class LoadHECRAS2DGeometry(object):
         • Optimizes performance for large datasets
         
         Recommended for organizing complete 2D models."""
-        params[13].category = "Output Organization"
+        # params[13].category = "Output Organization"  # Remove category grouping
         
         return params
 

@@ -61,7 +61,7 @@ class LoadHECRAS1DGeometry(object):
         
         # Tool behavior
         self.canRunInBackground = False
-        self.category = "HEC-RAS Data Import"
+        # self.category = "HEC-RAS Data Import"  # REMOVE THIS LINE
         
         # Documentation and credits
         self.tags = ["HEC-RAS", "1D Geometry", "Cross Sections", "River Centerlines", "Hydraulic Modeling", "Arc Hydro"]
@@ -95,21 +95,21 @@ class LoadHECRAS1DGeometry(object):
             
             # Output parameters
             arcpy.Parameter(displayName="Output Cross Sections", name="output_cross_sections", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output River Centerlines", name="output_centerlines", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output Bank Lines", name="output_bank_lines", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output Edge Lines", name="output_edge_lines", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Output 1D Structures", name="output_structures", datatype="DEFeatureClass", 
-                          parameterType="Optional", direction="Output", category="Outputs"),
+                          parameterType="Optional", direction="Output"),
             
             # Geodatabase organization parameters
             arcpy.Parameter(displayName="Output Geodatabase (Optional)", name="output_gdb", datatype="DEWorkspace", 
-                          parameterType="Optional", direction="Output", category="Output"),
+                          parameterType="Optional", direction="Output"),
             arcpy.Parameter(displayName="Create New Geodatabase", name="create_gdb", datatype="GPBoolean", 
-                          parameterType="Optional", direction="Input", category="Output")
+                          parameterType="Optional", direction="Input")
         ]
         
         # Configure HDF file filter
@@ -121,7 +121,7 @@ class LoadHECRAS1DGeometry(object):
         Supported file types:
         • Geometry files (g01.hdf, g02.hdf, etc.)
         • Plan files with geometry (p01.hdf, p02.hdf, etc.)"""
-        params[0].category = "Input Data"
+        # params[0].category = "Input Data"  # Remove category grouping
         
         params[1].description = """Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files.
         
@@ -131,7 +131,7 @@ class LoadHECRAS1DGeometry(object):
         3. The RAS Mapper projection file
         
         Only provide this parameter if automatic detection fails."""
-        params[1].category = "Input Data"
+        # params[1].category = "Input Data"  # Remove category grouping
         
         # Set filters for multi-value parameters
         params[2].filter.type = "ValueList"
@@ -147,7 +147,7 @@ class LoadHECRAS1DGeometry(object):
         • 1D Structures - Hydraulic structures including bridges, culverts, inline/lateral weirs
         
         Each selected element will create a separate output feature class with appropriate attributes."""
-        params[2].category = "Geometry Selection"
+        # params[2].category = "Geometry Selection"  # Remove category grouping
         
         # Set default output paths and descriptions
         params[3].value = r"memory\CrossSections"
@@ -203,7 +203,7 @@ class LoadHECRAS1DGeometry(object):
         • Automatic naming conventions will be applied
         
         Leave empty to use default output locations."""
-        params[8].category = "Output Organization"
+        # params[8].category = "Output Organization"  # Remove category grouping
         
         params[9].value = True  # Default to creating new geodatabase
         params[9].description = """Create a new geodatabase based on the HDF file name.
@@ -215,7 +215,7 @@ class LoadHECRAS1DGeometry(object):
         • Preserves all attribute relationships
         
         Recommended for organizing complete HEC-RAS projects."""
-        params[9].category = "Output Organization"
+        # params[9].category = "Output Organization"  # Remove category grouping
         
         return params
 

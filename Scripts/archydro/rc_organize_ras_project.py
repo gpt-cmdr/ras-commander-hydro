@@ -84,7 +84,7 @@ class OrganizeRASProject(object):
         
         # Tool behavior
         self.canRunInBackground = False
-        self.category = "HEC-RAS Project Management"
+        # self.category = "HEC-RAS Project Management"  # REMOVE THIS LINE
         
         # Documentation and credits
         self.tags = ["HEC-RAS", "Project Organization", "Geodatabase", "Batch Processing", 
@@ -124,13 +124,13 @@ class OrganizeRASProject(object):
         # Configure parameters
         params[0].description = """Select a HEC-RAS project directory to process all plan files (p*.hdf), 
         or select a single HDF file to process."""
-        params[0].category = "Input Data"
+        # params[0].category = "Input Data"  # Remove category grouping
         
         params[1].description = "Output geodatabase that will contain all extracted data in an organized structure."
-        params[1].category = "Output"
+        # params[1].category = "Output"  # Remove category grouping
         
         params[2].description = """Specify a coordinate reference system if it cannot be determined from the HEC-RAS project files."""
-        params[2].category = "Input Data"
+        # params[2].category = "Input Data"  # Remove category grouping
         
         # Data type selection parameters
         params[3].value = True
@@ -144,7 +144,7 @@ class OrganizeRASProject(object):
         • 1D structures (bridges, culverts, weirs)
         
         Disable if you only need 2D data."""
-        params[3].category = "Data Selection"
+        # params[3].category = "Data Selection"  # Remove category grouping
         
         params[4].value = True
         params[4].description = """Include all 2D geometry elements in the output.
@@ -159,7 +159,7 @@ class OrganizeRASProject(object):
         • Pipe networks (conduits, nodes, and network cells)
         
         Disable if you only need 1D data."""
-        params[4].category = "Data Selection"
+        # params[4].category = "Data Selection"  # Remove category grouping
         
         params[5].value = True
         params[5].description = """Include 2D results summary layers in the output.
@@ -170,7 +170,7 @@ class OrganizeRASProject(object):
         • Time of maximum occurrence
         
         Disable if you only need geometry without results."""
-        params[5].category = "Data Selection"
+        # params[5].category = "Data Selection"  # Remove category grouping
         
         params[6].value = False
         params[6].description = """Include full polygon representation of mesh cells.
@@ -184,7 +184,7 @@ class OrganizeRASProject(object):
         • > 100,000 cells: Not recommended (use cell centers instead)
         
         When disabled, only cell centers and faces are extracted."""
-        params[6].category = "Processing Options"
+        # params[6].category = "Processing Options"  # Remove category grouping
         
         return params
 
