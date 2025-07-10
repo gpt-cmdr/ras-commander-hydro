@@ -1,0 +1,185 @@
+# RAS Commander Arc Hydro Tools - Development Rules
+
+## Project Overview
+This project implements Arc Hydro Tools for HEC-RAS data extraction and organization within ArcGIS Pro.
+
+## Code Style and Conventions
+
+### Python Style
+- Follow PEP 8 conventions
+- Use descriptive variable names that clearly indicate purpose
+- Prefer f-strings for string formatting
+- Use type hints where appropriate
+- Keep line length under 120 characters for better readability in ArcGIS Pro
+
+### ArcPy Specific Conventions
+- Always use the `messages` parameter passed to methods, never `arcpy.AddMessage` directly
+- Format multi-line messages as single strings before passing to messages object:
+  ```python
+  # Good
+  msg = f"Processing {count} features in {format_time(elapsed)}"
+  messages.addMessage(msg)
+  
+  # Bad - can cause AttributeError
+  messages.addMessage(
+      f"Processing {count} features "
+      f"in {format_time(elapsed)}"
+  )
+  ```
+- Use `arcpy.ExecuteError()` for tool execution failures
+- Check for feature existence before operations
+
+### Performance Profiling Pattern
+When adding performance profiling to tools:
+
+1. Import required utilities:
+   ```python
+   from rc_utils import (
+       PerformanceTimer,
+       timed_operation,
+       format_time,
+       get_feature_count_estimate
+   )
+   ```
+
+2. Wrap execute method with timer:
+   ```python
+   def execute(self, parameters, messages):
+       """Execute the tool with performance profiling."""
+       tool_timer = PerformanceTimer().start()
+       
+       messages.addMessage(f"\n{'='*60}")
+       messages.addMessage(f"Starting {self.label}")
+       messages.addMessage(f"{'='*60}\n")
+       
+       try:
+           # Tool logic here
+           
+           # Performance summary
+           total_time = tool_timer.total()
+           messages.addMessage(f"\n{'='*60}")
+           messages.addMessage(f"PERFORMANCE SUMMARY - {self.label}")
+           messages.addMessage(f"{'='*60}")
+           messages.addMessage(f"  Total execution time: {format_time(total_time)}")
+           messages.addMessage(f"{'='*60}\n")
+           
+       except Exception as e:
+           elapsed = tool_timer.total()
+           messages.addErrorMessage(f"\nTool failed after {format_time(elapsed)}: {str(e)}")
+           raise
+   ```
+
+3. Use timed_operation for major steps:
+   ```python
+   with timed_operation(messages, "Loading HDF metadata"):
+       # Operation code
+   ```
+
+4. Add progress reporting for long operations:
+   ```python
+   if batch_elapsed > 1.0:  # Report if batch took > 1 second
+       rate = batch_created / batch_elapsed
+       messages.addMessage(
+           f"Processed {batch_end}/{total} ({progress*100:.1f}%) - "
+           f"Rate: {rate:.0f}/sec - ETA: {format_time(eta)}"
+       )
+   ```
+
+### HDF5 File Handling
+- Always use context managers for HDF5 files
+- Cache metadata when accessed multiple times
+- Process data in batches for large datasets
+- Use numpy operations for performance where possible
+
+### Error Handling
+- Provide specific, actionable error messages
+- Continue processing other elements if one fails
+- Always close HDF5 files properly
+- Log performance metrics even on failure
+
+### Feature Class Creation
+- Check if output already exists before creation
+- Use batch inserts for better performance (batch_size = 10000)
+- Report progress for operations over 50,000 features
+- Handle numpy data types properly (convert to Python types)
+
+### PowerShell Installer Scripts
+- Cast path variables to strings explicitly:
+  ```powershell
+  $scriptDir = [string](Split-Path -Parent $MyInvocation.MyCommand.Definition)
+  ```
+- Use explicit Join-Path parameters:
+  ```powershell
+  Join-Path -Path $repoRoot -ChildPath "Scripts\archydro"
+  ```
+- Validate paths are not arrays before use
+- Build file lists separately from path construction
+
+## Tool Organization
+
+### File Structure
+```
+Scripts/archydro/
+├── rc_utils.py                    # Shared utilities and performance helpers
+├── rc_load_hecras_1d_geometry.py  # 1D geometry extraction
+├── rc_load_hecras_2d_geometry.py  # 2D geometry extraction
+├── rc_load_hecras_2d_results.py   # Results data extraction
+├── rc_load_ras_terrain.py         # Terrain data extraction
+└── rc_organize_ras_project.py     # Master organization tool
+```
+
+### Method Patterns
+- `_get_*_direct()` methods: Direct HDF5 data extraction
+- `execute()`: Main tool execution with parameters
+- `getParameterInfo()`: Define tool parameters
+- `updateParameters()`: Dynamic parameter updates
+- `updateMessages()`: Parameter validation messages
+
+## Performance Guidelines
+
+### Expected Processing Rates
+- 1D Geometry: ~1,000 features/second
+- 2D Points: ~10,000 features/second
+- 2D Polygons: ~1,000 cells/second
+- Results: ~5,000 points/second
+
+### Optimization Strategies
+1. Pre-compute shared data (e.g., mesh faces for polygons)
+2. Use vectorized numpy operations
+3. Batch database operations
+4. Report progress to keep users informed
+5. Warn users about large dataset processing times
+
+### Memory Management
+- Process large datasets in chunks
+- Clear large arrays when no longer needed
+- Use generators where possible
+- Monitor memory usage for operations over 1GB
+
+## Common Pitfalls to Avoid
+
+1. **Don't use `arcpy.AddMessage` in methods** - always use the passed `messages` parameter
+2. **Don't pass multi-line f-strings to messages** - format first, then pass
+3. **Don't assume paths are strings** - PowerShell can create arrays unexpectedly
+4. **Don't process entire large datasets at once** - use batching
+5. **Don't ignore numpy type conversions** - can cause database write failures
+6. **Don't create files without user request** - no proactive documentation generation
+
+## Testing Checklist
+
+Before committing changes:
+- [ ] All tools run without errors on sample data
+- [ ] Performance metrics display correctly
+- [ ] Progress reporting works for large datasets
+- [ ] Error messages are clear and actionable
+- [ ] PowerShell installer runs without array conversion errors
+- [ ] Memory usage is reasonable for large datasets
+- [ ] All numpy types convert properly to Python types
+
+## Documentation Standards
+
+- Include docstrings for all classes and methods
+- Document expected performance characteristics
+- Provide usage examples in tool help
+- Note any limitations or known issues
+- Keep README updated with new features
