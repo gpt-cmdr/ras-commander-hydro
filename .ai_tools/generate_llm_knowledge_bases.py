@@ -8,14 +8,15 @@ ras-commander_fullrepo.txt:
    all files and folders except those specified in OMIT_FOLDERS and OMIT_FILES.
 
 The output file is generated in the 'llm_knowledge_bases' directory and serves
-as a complete reference for AI assistants or developers who need full details
-about the project structure and implementation.
+as a complete reference for AI assistants or developers who need a full overview
+of the project structure and content.
 """
 
 import os
 from pathlib import Path
 import re
 import json
+from typing import Dict, Any, List, Union
 
 # Configuration
 OMIT_FOLDERS = [
@@ -51,13 +52,13 @@ for folder in Path(__file__).parent.parent.rglob("__pycache__"):
         except Exception as e:
             print(f"Error deleting {folder}: {e}")
 
-def ensure_output_dir(base_path):
+def ensure_output_dir(base_path: Path) -> Path:
     output_dir = base_path / SUMMARY_OUTPUT_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"Output directory ensured to exist: {output_dir}")
     return output_dir
 
-def should_omit(filepath):
+def should_omit(filepath: Path) -> bool:
     if filepath.name == SCRIPT_NAME:
         return True
     if any(omit_folder in filepath.parts for omit_folder in OMIT_FOLDERS):
@@ -66,7 +67,7 @@ def should_omit(filepath):
         return True
     return False
 
-def process_notebook_content(filepath):
+def process_notebook_content(filepath: Path) -> str:
     """
     Process a Jupyter notebook to remove images and truncate dataframe outputs.
     
@@ -96,7 +97,7 @@ def process_notebook_content(filepath):
         with open(filepath, 'r', encoding='utf-8') as f:
             return f.read()
 
-def process_notebook_no_outputs(filepath):
+def process_notebook_no_outputs(filepath: Path) -> str:
     """
     Process a Jupyter notebook to completely remove all outputs.
     
@@ -128,7 +129,7 @@ def process_notebook_no_outputs(filepath):
         with open(filepath, 'r', encoding='utf-8') as f:
             return f.read()
 
-def save_cleaned_notebooks(summarize_subfolder, output_dir):
+def save_cleaned_notebooks(summarize_subfolder: Path, output_dir: Path) -> None:
     """
     Save cleaned versions of all notebooks to a separate subfolder.
     All notebooks will be placed directly in the root of example_notebooks_cleaned.
@@ -171,7 +172,7 @@ def save_cleaned_notebooks(summarize_subfolder, output_dir):
         except Exception as e:
             print(f"Error processing notebook {notebook_path}: {e}")
 
-def clean_notebook_outputs(outputs):
+def clean_notebook_outputs(outputs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Clean cell outputs by removing images and truncating dataframes.
     
@@ -254,7 +255,7 @@ def clean_notebook_outputs(outputs):
     
     return cleaned_outputs
 
-def process_html_output(html_content):
+def process_html_output(html_content: str) -> str:
     """
     Process HTML output content to truncate and simplify it.
     
@@ -302,7 +303,7 @@ def process_html_output(html_content):
     # Otherwise, keep the HTML content as is
     return html_content
 
-def process_text_output(text_content):
+def process_text_output(text_content: str) -> str:
     """
     Process text output content to truncate and simplify it.
     
@@ -355,7 +356,7 @@ def process_text_output(text_content):
     # Otherwise, keep the text as is
     return text_content
 
-def truncate_dataframe_html(html_content):
+def truncate_dataframe_html(html_content: str) -> str:
     """
     Truncate an HTML dataframe to show only the header and a few rows.
     
@@ -412,7 +413,7 @@ def truncate_dataframe_html(html_content):
     # Put it all together
     return f"<div>\n{style_section}\n{truncated_table}\n</div>"
 
-def read_file_contents(filepath):
+def read_file_contents(filepath: Path) -> str:
     try:
         # Process Jupyter notebooks specially
         if filepath.suffix.lower() == '.ipynb':
@@ -446,39 +447,46 @@ def read_file_contents(filepath):
             print(f"Reading and converting content of file: {filepath}")
     return content
 
-def build_project_tree(filepaths, base_path):
+def build_project_tree(filepaths: List[Path], base_path: Path) -> str:
     """
     Build a project structure tree as a string, given a list of filepaths.
     Only includes files actually included in the knowledge base.
     """
     from collections import defaultdict
     
-    # Use a string marker to distinguish files from directories
-    FILE_MARKER = "__FILE__"
-    
-    tree = lambda: defaultdict(tree)
-    file_tree = tree()
+    # Create a tree structure using nested dictionaries
+    tree: Dict[str, Any] = {}
     
     for path in filepaths:
         rel_parts = Path(path).relative_to(base_path).parts
-        subtree = file_tree
+        current_level = tree
+        
+        # Navigate through the directory structure
         for part in rel_parts[:-1]:
-            subtree = subtree[part]
-        subtree[rel_parts[-1]] = FILE_MARKER
+            if part not in current_level:
+                current_level[part] = {}
+            current_level = current_level[part]
+        
+        # Add the file at the final level
+        current_level[rel_parts[-1]] = "FILE"
     
-    def render(subtree, prefix=""):
+    def render(subtree: Dict[str, Any], prefix: str = "") -> List[str]:
         lines = []
-        for i, (name, child) in enumerate(sorted(subtree.items())):
-            connector = "└── " if i == len(subtree)-1 else "├── "
+        items = sorted(subtree.items())
+        
+        for i, (name, child) in enumerate(items):
+            connector = "└── " if i == len(items) - 1 else "├── "
             lines.append(f"{prefix}{connector}{name}")
-            if child != FILE_MARKER:
-                extension = "    " if i == len(subtree)-1 else "│   "
+            
+            if isinstance(child, dict):
+                extension = "    " if i == len(items) - 1 else "│   "
                 lines.extend(render(child, prefix + extension))
+        
         return lines
     
-    return '\n'.join(render(file_tree))
+    return '\n'.join(render(tree))
 
-def write_project_tree_and_content(outfile, filepaths, base_path, cleaned_notebooks_dir):
+def write_project_tree_and_content(outfile, filepaths: List[Path], base_path: Path, cleaned_notebooks_dir: Path) -> None:
     """
     Write the project structure tree and then the content for each file.
     """
@@ -504,14 +512,14 @@ def write_project_tree_and_content(outfile, filepaths, base_path, cleaned_notebo
         outfile.write(content)
         outfile.write("\n" + "="*50 + "\n\n")
 
-def generate_full_summary(summarize_subfolder, output_dir):
+def generate_full_summary(summarize_subfolder: Path, output_dir: Path) -> None:
     output_file_name = f"{summarize_subfolder.name}_fullrepo.txt"
     output_file_path = output_dir / output_file_name
     print(f"Generating Full Summary: {output_file_path}")
     
     cleaned_notebooks_dir = output_dir / "example_notebooks_cleaned"
-    filepaths = []
     
+    filepaths = []
     for filepath in summarize_subfolder.rglob('*'):
         if should_omit(filepath):
             continue
@@ -523,7 +531,7 @@ def generate_full_summary(summarize_subfolder, output_dir):
     
     print(f"Full summary created at '{output_file_path}'")
 
-def main():
+def main() -> None:
     # Get the name of this script
     this_script = SCRIPT_NAME
     print(f"Script name: {this_script}")
