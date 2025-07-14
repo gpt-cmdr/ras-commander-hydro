@@ -54,6 +54,25 @@ Following an ASFPM brainstorming session in late May 2025, this toolbox was de
 
 ---
 
+## Installation
+
+### Primary Method: Arc Hydro Tools Installation
+
+The RAS Commander toolbox will be included as part of the Arc Hydro Tools distribution. This is the recommended installation method for most users.
+
+1. Install Arc Hydro Tools following the standard installation process (if it is already installed, uninstall and re-install the latest version (Version 3.4.30 minimum)
+2. The RAS Commander toolbox will be available under:
+
+   ```
+   Toolboxes → Arc Hydro Tools → RAS Commander
+   ```
+
+Note that these toolboxes have only been tested in ArcGIS, not the older ArcMap.  
+
+Development install is detailed further in case you want to edit the tools or extend them, or get the latest bleeding-edge version between Arc Hydro updates.
+
+---
+
 ## 📸 Interface Walk‑Through
 
 Below are high‑resolution screenshots of each Arc Hydro tool in action to help you get up to speed quickly.
@@ -139,19 +158,6 @@ This project showcases CLB Engineering's [LLM Forward approach](https://clbeng
 4. **Open Source**: Transparent development process you can contribute to
 
 ---
-
-## Installation
-
-### Primary Method: Arc Hydro Tools Installation
-
-The RAS Commander toolbox will be included as part of the Arc Hydro Tools distribution. This is the recommended installation method for most users.
-
-1. Install Arc Hydro Tools following the standard installation process
-2. The RAS Commander toolbox will be available under:
-
-   ```
-   Toolboxes → Arc Hydro Tools → RAS Commander
-   ```
 
 ### Development Installation
 
