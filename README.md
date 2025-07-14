@@ -56,12 +56,13 @@ Following an ASFPM brainstorming session in late May 2025, this toolbox was de
 
 ## Installation
 
-### Primary Method: Arc Hydro Tools Installation
+### Primary Method: Install with Arc Hydro Tools
 
 The RAS Commander toolbox will be included as part of the Arc Hydro Tools distribution. This is the recommended installation method for most users.
 
-1. Install Arc Hydro Tools following the standard installation process (if it is already installed, uninstall and re-install the latest version (Version 3.4.30 minimum)
-2. The RAS Commander toolbox will be available under:
+1. Install Arc Hydro Tools with the [Arc Hydro installer](https://www.esri.com/en-us/industries/water-resources/arc-hydro/downloads)
+2. If you are updating, uninstall Arc Hydro and re-install the latest version (Version 3.4.30 minimum)
+3. The RAS Commander toolbox will be available under:
 
    ```
    Toolboxes → Arc Hydro Tools → RAS Commander
