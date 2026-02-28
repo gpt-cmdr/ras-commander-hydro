@@ -117,7 +117,11 @@ class OrganizeRASProject(object):
                           parameterType="Optional", direction="Input"),
             
             # Options
-            arcpy.Parameter(displayName="Include Mesh Cell Polygons", name="include_cell_polygons", datatype="GPBoolean", 
+            arcpy.Parameter(displayName="Include Mesh Cell Polygons", name="include_cell_polygons", datatype="GPBoolean",
+                          parameterType="Optional", direction="Input"),
+
+            # Map loading control
+            arcpy.Parameter(displayName="Load Results to Map", name="load_to_map", datatype="GPBoolean",
                           parameterType="Optional", direction="Input"),
         ]
         
@@ -174,18 +178,25 @@ class OrganizeRASProject(object):
         
         params[6].value = False
         params[6].description = """Include full polygon representation of mesh cells.
-        
+
         WARNING: This can significantly increase processing time for large meshes.
-        
+
         Performance guidelines:
         • < 10,000 cells: Safe to enable
         • 10,000 - 50,000 cells: May take several minutes
         • 50,000 - 100,000 cells: May take 10-30 minutes
         • > 100,000 cells: Not recommended (use cell centers instead)
-        
+
         When disabled, only cell centers and faces are extracted."""
         # params[6].category = "Processing Options"  # Remove category grouping
-        
+
+        params[7].value = True
+        params[7].description = """Load the output geodatabase layers into the current ArcGIS Pro map.
+
+        When enabled (default), the tool will add all created feature classes to the active map
+        grouped by plan. Disable this when running in automated or command-line environments
+        where no ArcGIS Pro GUI is available."""
+
         return params
 
     def isLicensed(self):
@@ -504,9 +515,13 @@ class OrganizeRASProject(object):
         messages.addMessage(f"Processing complete! All plans organized in:")
         messages.addMessage(f"  {output_gdb}")
         
-        # Load the geodatabase into the map
-        messages.addMessage("\nAdding results to map...")
-        self._load_geodatabase_to_map(output_gdb, messages)
+        # Load the geodatabase into the map (unless disabled via load_to_map parameter)
+        load_to_map = True
+        if len(parameters) > 7 and parameters[7].value is not None:
+            load_to_map = bool(parameters[7].value)
+        if load_to_map:
+            messages.addMessage("\nAdding results to map...")
+            self._load_geodatabase_to_map(output_gdb, messages)
     
     def _process_single_hdf(self, hdf_path, output_gdb, override_crs, 
                           include_1d, include_2d, include_results,

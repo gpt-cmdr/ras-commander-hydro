@@ -29,7 +29,7 @@ def get_ras_projection_wkt(hdf_path_str: str) -> str or None:
             proj_wkt_attr = hdf_file.attrs.get("Projection")
             if proj_wkt_attr:
                 if isinstance(proj_wkt_attr, (bytes, np.bytes_)):
-                    wkt = proj_wkt_attr.decode("utf-8")
+                    wkt = proj_wkt_attr.decode("utf-8", "ignore")
                     arcpy.AddMessage(f"Found projection in HDF file: {os.path.basename(hdf_path)}")
                     return wkt
     except Exception as e:
@@ -287,7 +287,7 @@ def cache_hdf_metadata(hdf_file):
         from datetime import datetime
         time_str = plan_info.attrs['Simulation Start Time']
         hdf_cache['simulation_start_time'] = datetime.strptime(
-            time_str.decode('utf-8'), "%d%b%Y %H:%M:%S"
+            time_str.decode('utf-8', 'ignore'), "%d%b%Y %H:%M:%S"
         )
         hdf_cache['has_results'] = True
     
