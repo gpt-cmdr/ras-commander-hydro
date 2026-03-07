@@ -149,7 +149,7 @@ This is a **community‑driven effort**, and we're actively seeking your feedbac
 
 ## The LLM Forward Revolution
 
-This project showcases CLB Engineering's [LLM Forward approach](https://clbengineering.com/)—a revolutionary methodology that leverages Large Language Models to accelerate software development while maintaining professional‑grade quality. Learn more about this innovative approach and the author's work at [Engineering with LLMs](https://engineeringwithllms.info/).
+This project showcases CLB Engineering's [LLM Forward approach](https://clbengineering.com/llm-forward)—a revolutionary methodology that leverages Large Language Models to accelerate software development while maintaining professional‑grade quality. Learn more about this innovative approach and the author's work at [Engineering with LLMs](https://engineeringwithllms.info/).
 
 ### What Makes This Special?
 
