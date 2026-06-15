@@ -289,6 +289,6 @@ This project is licensed under the MIT License – see the [LICENSE](LICENSE) f
 
 ### 🎉 See us at Esri User Conference 2025! 🎉
 
-[Get Started](https://github.com/gpt-cmdr/ras-commander-hydro) | [Documentation](Doc/RASCommander_Help.html) | [Report Issues](https://github.com/gpt-cmdr/ras-commander-hydro/issues)
+[Get Started](https://github.com/gpt-cmdr/ras-commander-hydro) | [Documentation](https://rascommander.info/hydro/) | [Report Issues](https://github.com/gpt-cmdr/ras-commander-hydro/issues)
 
 </div>
