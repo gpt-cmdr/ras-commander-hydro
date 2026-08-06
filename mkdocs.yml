@@ -1,6 +1,6 @@
 site_name: RAS Commander Hydro
 site_url: https://rascommander.info/hydro/
-site_description: Hydrology / Arc Hydro helper tools and templates built on ras-commander.
+site_description: User guide for importing HEC-RAS geometry, results, and terrain into ArcGIS Pro with the RAS Commander Arc Hydro Tools.
 repo_url: https://github.com/gpt-cmdr/ras-commander-hydro
 repo_name: gpt-cmdr/ras-commander-hydro
 docs_dir: docs
@@ -40,4 +40,15 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Installation: installation.md
-  - Features: features.md
+  - Quick start: quick-start.md
+  - Choose a tool: features.md
+  - Tool guides:
+      - Load 1D geometry: tools/load-1d-geometry.md
+      - Load 2D geometry: tools/load-2d-geometry.md
+      - Load 2D results: tools/load-2d-results.md
+      - Load terrain: tools/load-terrain.md
+      - Organize a project: tools/organize-project.md
+  - Reference:
+      - Outputs and naming: reference/outputs.md
+      - Validation checklist: reference/validation.md
+      - Troubleshooting: troubleshooting.md

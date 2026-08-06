@@ -721,7 +721,7 @@ class OrganizeRASProject(object):
             return f"file:///{help_file.replace(os.sep, '/')}{anchor}"
         else:
             # Fallback to online documentation
-            return "https://github.com/gpt-cmdr/ras-commander-hydro#organize-hec-ras-project"
+            return "https://rascommander.info/hydro/tools/organize-project/"
     
     def getCodeSamples(self):
         """Provide code samples for using this tool programmatically."""

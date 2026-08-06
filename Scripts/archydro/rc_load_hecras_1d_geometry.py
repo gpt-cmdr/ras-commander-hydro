@@ -677,7 +677,7 @@ class LoadHECRAS1DGeometry(object):
             return f"file:///{help_file.replace(os.sep, '/')}{anchor}"
         else:
             # Fallback to online documentation
-            return "https://github.com/gpt-cmdr/ras-commander-hydro#load-hec-ras-1d-geometry-layers"
+            return "https://rascommander.info/hydro/tools/load-1d-geometry/"
     
     def getCodeSamples(self):
         """Provide code samples for using this tool programmatically."""

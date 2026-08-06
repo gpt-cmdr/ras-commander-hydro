@@ -1,53 +1,73 @@
 # Installation
 
-The RAS Commander toolbox is tested in ArcGIS Pro (not the older ArcMap).
+RAS Commander Arc Hydro Tools runs inside ArcGIS Pro on Windows. It is not an ArcMap toolbox.
 
-## Primary Method: Install with Arc Hydro Tools
+## Prerequisites
 
-The RAS Commander toolbox is included as part of the Arc Hydro Tools distribution. This is the
-recommended installation method for most users.
+| Requirement | Notes |
+| --- | --- |
+| ArcGIS Pro | Use a supported ArcGIS Pro release with a valid license. |
+| Arc Hydro Tools | Recommended for the packaged installation. Download the release that matches your ArcGIS Pro version. |
+| HEC-RAS project data | The import tools are designed for HEC-RAS 6.x HDF layouts. Results tools require a computed plan HDF. |
+| Writable output location | A local file geodatabase is recommended, especially for large meshes. |
 
-1. Install Arc Hydro Tools with the
-   [Arc Hydro installer](https://www.esri.com/en-us/industries/water-resources/arc-hydro/downloads).
-2. If you are updating, uninstall Arc Hydro and re-install the latest version (Version 3.4.30
-   minimum).
-3. The RAS Commander toolbox will be available under:
+## Install with Arc Hydro Tools
 
-   ```
-   Toolboxes → Arc Hydro Tools → RAS Commander
-   ```
+This is the recommended path for most users.
 
-## Development Installation
+1. Download the current Arc Hydro build for your ArcGIS Pro version from the
+   [official Esri Arc Hydro download page](https://www.esri.com/en-us/industries/water-resources/arc-hydro/downloads).
+2. If another Arc Hydro version is installed, uninstall it first. The Arc Hydro installer does not
+   overwrite an existing installation; follow Esri's
+   [installation guide](https://www.esri.com/content/dam/esrisites/en-us/media/manuals/downloading-arc-hydro.pdf).
+3. Install the downloaded Arc Hydro package with administrator privileges.
+4. Restart ArcGIS Pro.
+5. In the **Catalog** pane, expand **Toolboxes**, then locate the Arc Hydro toolbox and
+   **RAS Commander Tools**.
 
-For developers and users who want to extend or customize the tools, or to get the latest
-bleeding-edge version between Arc Hydro updates.
+Arc Hydro packaging can vary by ArcGIS Pro release. If the RAS Commander tools are not present in
+the compatible Arc Hydro package available to you, use the source-toolbox method below.
 
-1. **Clone the repository**
+## Add the source toolbox
 
-   ```bash
+Use this method for development, evaluation, or access to the latest public repository version.
+It does not copy files into the ArcGIS Pro installation directory.
+
+1. Clone or download the repository:
+
+   ```powershell
    git clone https://github.com/gpt-cmdr/ras-commander-hydro.git
    cd ras-commander-hydro
    ```
 
-2. **Option A: Add the toolbox in ArcGIS Pro**
+2. Open ArcGIS Pro and open or create a project with a map.
+3. In the **Catalog** pane, right-click **Toolboxes** and select **Add Toolbox**.
+4. Browse to `toolboxes/RAS-Commander.pyt` in the repository.
+5. Expand **RAS Commander Tools** and open a tool.
 
-   - Open ArcGIS Pro.
-   - In the Catalog pane, right-click on **Toolboxes**.
-   - Select **Add Toolbox**.
-   - Navigate to `toolboxes/RAS-Commander.pyt`.
+Keep the repository structure intact. The Python toolbox loads the supporting `rc_*.py` modules
+from `Scripts/archydro` by their relative location.
 
-3. **Option B: Install for development (requires Admin)**
+## Optional system-copy installer
 
-   ```powershell
-   # Run PowerShell as Administrator
-   cd Resources
-   .\install_toolbox.ps1
-   ```
+The repository includes `Resources/install_toolbox.ps1` for maintainers who need to copy the
+toolbox, scripts, templates, and images into the ArcGIS Pro installation. It requires an elevated
+PowerShell session and writes beneath `C:\Program Files\ArcGIS\Pro`. The source-toolbox method is
+usually easier to update and remove.
 
-   To uninstall:
+## Verify the installation
 
-   ```powershell
-   # Run PowerShell as Administrator
-   cd Resources
-   .\uninstall_toolbox.ps1
-   ```
+Open **Load HEC-RAS 1D Geometry Layers**. A correct installation shows these inputs:
+
+- **Geometry or Plan HDF File**
+- **Override CRS (Optional)**
+- **Geometry Elements to Load**
+- Output feature classes and geodatabase options
+
+If the toolbox has a red error icon, confirm that:
+
+- `RAS-Commander.pyt` still has access to `Scripts/archydro`.
+- ArcGIS Pro's Python environment includes `h5py` and `numpy`.
+- You installed the Arc Hydro build for your ArcGIS Pro version.
+
+Continue with the [quick start](quick-start.md).

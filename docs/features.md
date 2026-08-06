@@ -1,82 +1,79 @@
-# Features
+# Choose a Tool
 
-RAS Commander Arc Hydro Tools provides a focused set of tools for importing HEC-RAS 6.x data
-into ArcGIS Pro. Each tool reads directly from HEC-RAS geometry (`g*.hdf`) and plan (`p*.hdf`)
-files.
+Use an individual loader when you need a specific layer from one HDF file. Use **Organize
+HEC-RAS Project** when you want a consistent geodatabase for all available plans in one folder.
+
+| Need | Tool | Input | Main output |
+| --- | --- | --- | --- |
+| Review a 1D river model | [Load 1D geometry](tools/load-1d-geometry.md) | `g*.hdf` or `p*.hdf` | Polyline feature classes |
+| Review a 2D mesh or pipe network | [Load 2D geometry](tools/load-2d-geometry.md) | `g*.hdf` or `p*.hdf` | Points, lines, and polygons |
+| Map peak 2D WSE or velocity | [Load 2D results](tools/load-2d-results.md) | Computed `p*.hdf` | Summary point feature classes |
+| Display the base RAS terrain | [Load terrain](tools/load-terrain.md) | Project `.prj` plus `.rasmap` and VRT files | Raster layers in the active map |
+| Build one organized delivery | [Organize a project](tools/organize-project.md) | Project folder or one HDF | File geodatabase grouped by plan |
 
 ## Load HEC-RAS 1D Geometry Layers
 
-Extract comprehensive 1D hydraulic model elements — cross sections, river centerlines, bank
-lines, and structures — for report figures and analysis.
+Extract cross sections, river centerlines, bank lines, edge lines, and supported 1D structures.
+The default selection is cross sections and river centerlines.
 
-<p align="center">
-  <img src="../Images/docs/Load1DGeometry.png" alt="Load 1D Geometry" width="35%">
-</p>
+![Load HEC-RAS 1D Geometry Layers in ArcGIS Pro](assets/images/load-1d-geometry.png)
+
+[Open the 1D geometry guide](tools/load-1d-geometry.md)
 
 ## Load HEC-RAS 2D Geometry Layers
 
-Import complete 2D model components including mesh elements, breaklines, boundary conditions,
-and mesh cells as polygons for advanced spatial analysis. Includes full support for storm/sewer
-pipe networks (including SWMM imports).
+Extract flow-area perimeters, mesh centers, faces or polygons, breaklines, boundary-condition
+lines, and supported pipe-network geometry. The default selection is mesh-area perimeters.
 
-<p align="center">
-  <img src="../Images/docs/Load2DGeometry.png" alt="Load 2D Geometry" width="35%">
-</p>
+![Load HEC-RAS 2D Geometry Layers in ArcGIS Pro](assets/images/load-2d-geometry.png)
+
+[Open the 2D geometry guide](tools/load-2d-geometry.md)
 
 ## Load HEC-RAS 2D Results Summary Layers
 
-Visualize maximum water-surface elevation and velocity results, with time of occurrence.
+Create maximum WSE points at cell centers and maximum velocity points at cell-face centroids.
+Values remain in the HEC-RAS model's units; the tool does not convert or classify them.
 
-<p align="center">
-  <img src="../Images/docs/Load2DSummaryResults.png" alt="Load 2D Results Summary" width="35%">
-</p>
+![Load HEC-RAS 2D Results Summary Layers in ArcGIS Pro](assets/images/load-2d-results.png)
+
+[Open the 2D results guide](tools/load-2d-results.md)
 
 ## Load HEC-RAS Terrain
 
-Import terrain layers from RAS Mapper VRT files with proper georeferencing.
+Read terrain definitions from the project's `.rasmap` file and add the corresponding VRTs to the
+active ArcGIS Pro map.
 
-<p align="center">
-  <img src="../Images/docs/LoadRASTerrain.png" alt="Load RAS Terrain" width="35%">
-</p>
+![Load HEC-RAS Terrain in ArcGIS Pro](assets/images/load-ras-terrain.png)
+
+[Open the terrain guide](tools/load-terrain.md)
 
 ## Organize HEC-RAS Project
 
-A batch-processing tool that organizes an entire HEC-RAS project into an organized geodatabase.
+Batch-process a plan HDF or the top-level plan HDF files in one project folder. This is the best
+starting point for a complete GIS review or delivery. The current tool separately controls 1D
+geometry, 2D geometry, 2D summary results, mesh-cell polygons, and whether outputs are added to the
+active map.
 
-<p align="center">
-  <img src="../Images/docs/OrganizeRASProject.png" alt="Organize HEC-RAS Project" width="35%">
-</p>
+[Open the project-organization guide](tools/organize-project.md)
 
-## Example: New Orleans 2D Model
+## Example: New Orleans 2D model
 
-The images below show a 2D HEC-RAS model of the New Orleans metro storm-water system, complete
-with imported pipe networks, mesh polygons, and a maximum WSEL raster generated directly inside
-ArcGIS Pro.
+These examples show imported pipe-network and 2D geometry layers, followed by maximum WSE and
+maximum face-velocity results in ArcGIS Pro.
 
-<p align="center">
-  <img src="../Images/docs/rc_neworleanspipes.png" alt="New Orleans Imported Pipe Networks" width="50%">
-</p>
+![Imported New Orleans pipe-network and mesh geometry](assets/images/new-orleans-pipe-network.png)
 
-<p align="center">
-  <img src="../Images/docs/rc_neworleanspipes_results.png" alt="New Orleans Maximum WSEL" width="50%">
-</p>
+![New Orleans maximum WSE and velocity summary layers](assets/images/new-orleans-results.png)
 
-## Roadmap
+## Scope boundaries
 
-Initial release capabilities:
+The toolbox is intentionally focused. It does not:
 
-- 1D and 2D geometry extraction (including pipe networks).
-- Max WSE and velocity as 2D mesh results.
-- Terrain import for inundation mapping.
-- Support for HEC-RAS 2D models.
-- Organize entire projects as geodatabases.
+- Execute or modify HEC-RAS plans.
+- Write edits back to HEC-RAS geometry or results files.
+- Extract full 2D time series or 1D results profiles.
+- Apply RAS Mapper vector terrain modifications to the base terrain VRT.
+- Replace engineering review of model setup, units, projections, or results.
 
-Coming soon:
-
-- Improved schemas and layer styling.
-- 1D results and full time series.
-- Fluvial/pluvial delineation.
-- Land use layer integration.
-- Sync changes back to HEC-RAS.
-
-[View the full roadmap and vote on features](https://github.com/gpt-cmdr/ras-commander-hydro/issues).
+Use the [full RAS Commander library](https://rascommander.info/ras/) for broader HEC-RAS
+automation and HDF analysis.
