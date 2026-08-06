@@ -39,6 +39,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Get Arc Hydro from Esri: https://www.esri.com/en-us/industries/water-resources/arc-hydro/downloads#arc-hydro-for-arcgis-pro
   - Installation: installation.md
   - Quick start: quick-start.md
   - Choose a tool: features.md

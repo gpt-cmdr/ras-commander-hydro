@@ -2,6 +2,15 @@
 
 ![RAS Commander Arc Hydro Tools](assets/images/ras-commander-arc-hydro.png)
 
+## Get RAS Commander Arc Hydro Tools
+
+RAS Commander Arc Hydro Tools is distributed with **Arc Hydro Tools for ArcGIS Pro**. Get the
+current release directly from Esri, then open **RAS Commander Tools** from the Arc Hydro toolbox in
+ArcGIS Pro.
+
+[Download the latest Arc Hydro Tools from Esri](https://www.esri.com/en-us/industries/water-resources/arc-hydro/downloads#arc-hydro-for-arcgis-pro){ .md-button .md-button--primary }
+[Read the installation guide](installation.md){ .md-button }
+
 !!! note "This guide covers the ArcGIS Pro toolbox"
     RAS Commander Arc Hydro Tools exposes a focused set of RAS Commander capabilities inside
     ArcGIS Pro. For Python automation, plan execution, HDF analysis, and the complete RAS Commander

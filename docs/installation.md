@@ -13,10 +13,11 @@ RAS Commander Arc Hydro Tools runs inside ArcGIS Pro on Windows. It is not an Ar
 
 ## Install with Arc Hydro Tools
 
-This is the recommended path for most users.
+RAS Commander Arc Hydro Tools is distributed with **Arc Hydro Tools for ArcGIS Pro**. This is the
+recommended installation path for most users.
 
-1. Download the current Arc Hydro build for your ArcGIS Pro version from the
-   [official Esri Arc Hydro download page](https://www.esri.com/en-us/industries/water-resources/arc-hydro/downloads).
+1. Download the latest compatible Arc Hydro build directly from the
+   [official Esri Arc Hydro download page](https://www.esri.com/en-us/industries/water-resources/arc-hydro/downloads#arc-hydro-for-arcgis-pro).
 2. If another Arc Hydro version is installed, uninstall it first. The Arc Hydro installer does not
    overwrite an existing installation; follow Esri's
    [installation guide](https://www.esri.com/content/dam/esrisites/en-us/media/manuals/downloading-arc-hydro.pdf).
@@ -24,9 +25,6 @@ This is the recommended path for most users.
 4. Restart ArcGIS Pro.
 5. In the **Catalog** pane, expand **Toolboxes**, then locate the Arc Hydro toolbox and
    **RAS Commander Tools**.
-
-Arc Hydro packaging can vary by ArcGIS Pro release. If the RAS Commander tools are not present in
-the compatible Arc Hydro package available to you, use the source-toolbox method below.
 
 ## Add the source toolbox
 
