@@ -1,6 +1,6 @@
 # RAS Commander Arc Hydro Tools
 
-![RAS Commander Arc Hydro Tools](assets/images/ras-commander-arc-hydro.png)
+![RAS Commander Arc Hydro Tools](assets/images/ras-commander-arc-hydro.png){ style="width: 67%; height: auto; display: block; margin-inline: auto;" }
 
 ## Get RAS Commander Arc Hydro Tools
 

@@ -68,5 +68,5 @@
   <path d="M430,280 L430,260 L410,280 Z" fill="#5CDB95" opacity="0.5" />
   
   <!-- Partnership text moved up to be within the frame -->
-  <text x="225" y="275" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#8EE4AF" opacity="0.7">In Partnership with CLB Engineering Corporation</text>
+  <text x="225" y="275" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#8EE4AF" opacity="0.7">In Partnership with ESRI</text>
 </svg>
